@@ -1,0 +1,18 @@
+# personal data: never commit
+data/
+*.xlsx
+*.csv
+*.db
+*.db-wal
+*.db-shm
+.env
+
+# python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# web
+node_modules/
+web/dist/

@@ -262,3 +262,6 @@ button.link:hover { color: var(--accent); }
 .btn.danger { color: var(--bad); }
 .pin { display: grid; gap: 12px; border-color: var(--accent); }
 @media (max-width: 900px) { .tile, .tile.small { grid-column: span 6; } }
+
+.balance { display: flex; flex-wrap: wrap; gap: 8px 32px; align-items: center; justify-content: space-between; }
+.balance .big { margin-top: 0; }

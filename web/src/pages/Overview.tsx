@@ -82,6 +82,10 @@ export default function Overview() {
   const investments = detail && sumOf(named("investments"));
   const emis = detail && sumOf(named("emi"));
   const otherMoved = detail && sumOf(moved.filter((r) => !["investments", "emi"].includes(r.key.toLowerCase())));
+  // Income minus everything that left: spend, investments, EMIs and any other transfer.
+  const balance = detail
+    ? Math.round((detail.income.total - detail.categories.total - detail.transfers.total) * 100) / 100
+    : undefined;
   const entries = (x: { count: number } | null | undefined) =>
     `${x?.count ?? 0} ${x?.count === 1 ? "entry" : "entries"}, not counted as spend`;
 
@@ -115,6 +119,21 @@ export default function Overview() {
         <Tile label="EMIs" value={emis?.total} note={entries(emis)} />
         {otherMoved && otherMoved.count > 0 && (
           <Tile label="Other transfers" value={otherMoved.total} note={entries(otherMoved)} />
+        )}
+      </section>
+
+      <section className="card balance" aria-label="Balance for this period">
+        <div>
+          <div className="tile-label">Balance</div>
+          <div className="big" style={{ color: balance === undefined ? undefined : balance < 0 ? "var(--bad)" : "var(--good)" }}>
+            {balance === undefined ? "…" : inr(balance)}
+          </div>
+        </div>
+        {detail && (
+          <div className="tile-note">
+            {inr(detail.income.total)} income − {inr(detail.categories.total)} spent − {inr(investments?.total ?? 0)} invested −{" "}
+            {inr(emis?.total ?? 0)} EMIs{otherMoved && otherMoved.count > 0 ? ` − ${inr(otherMoved.total)} other transfers` : ""}
+          </div>
         )}
       </section>
 
@@ -206,11 +225,11 @@ export default function Overview() {
   );
 }
 
-function Tile({ label, value, note }: { label: string; value: number | undefined; note: string }) {
+function Tile({ label, value, note, tone }: { label: string; value: number | undefined; note: string; tone?: "good" | "bad" }) {
   return (
     <div className="card">
       <div className="tile-label">{label}</div>
-      <div className="tile-value">{value === undefined ? "…" : inr(value)}</div>
+      <div className="tile-value" style={tone ? { color: `var(--${tone})` } : undefined}>{value === undefined ? "…" : inr(value)}</div>
       <div className="tile-note">{note}</div>
     </div>
   );

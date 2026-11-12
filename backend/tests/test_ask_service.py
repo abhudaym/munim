@@ -152,3 +152,19 @@ def test_date_tokens_handle_month_ends_and_january():
 def test_result_is_a_plain_dict(db_path, factory):
     out = run(db_path, factory, FakeLLM(Draft(COFFEE_TOTAL, None)))
     assert isinstance(out, AskResult) and out.to_dict()["headline"] == 1440
+
+
+def test_context_carries_worked_examples_that_really_run(db_path):
+    from munim.ask.guard import check_sql
+    from munim.ask.runner import run_query
+
+    text = context(db_path)
+    queries = [line.split("SQL: ", 1)[1] for line in text.splitlines() if line.strip().startswith("SQL: ")]
+    assert len(queries) == 4  # two tag examples, per month, monthly average; no odometer data here
+    assert "subcategory = 'coffee' AND txn_date >= '2026-03-01'" in queries[0] and "category =" not in queries[0]
+    conn = connect_readonly(db_path)
+    try:
+        for sql in queries:
+            run_query(conn, check_sql(sql))
+    finally:
+        conn.close()

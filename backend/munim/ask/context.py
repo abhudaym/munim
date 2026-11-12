@@ -89,4 +89,46 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         )
         if merchants:
             lines += ["", "Frequent merchants as 'name (entries)':", "  " + ", ".join(f"{m} ({c})" for m, c in merchants)]
+    lines += ["", *_examples(date_tokens(today), [name for name, _ in subs], bool(odo_n))]
     return "\n".join(lines)
+
+
+def _examples(t: dict[str, str], tags: list[str], has_odometer: bool) -> list[str]:
+    """Worked examples with today's real dates. Small models follow these far better than rules."""
+    out = ["Examples (same style, same date literals):"]
+
+    def add(question: str, sql: str) -> None:
+        out.extend([f"  Q: {question}", f"  SQL: {sql}"])
+
+    if tags:
+        tag = tags[0]
+        add(
+            f"How much did I spend on {tag} last month?",
+            f"SELECT SUM(amount) AS spent FROM v_expenses WHERE subcategory = '{tag}' "
+            f"AND txn_date >= '{t['last_month_start']}' AND txn_date <= '{t['last_month_end']}'",
+        )
+        add(
+            f"How many {tag} entries in the last 30 days?",
+            f"SELECT COUNT(*) AS n FROM v_expenses WHERE subcategory = '{tag}' "
+            f"AND txn_date >= '{t['days_30_ago']}' AND txn_date <= '{t['today']}'",
+        )
+    add(
+        "Spend per month over the last three months",
+        "SELECT month, SUM(amount) AS spent FROM v_expenses "
+        f"WHERE txn_date >= '{t['three_full_months_start']}' AND txn_date <= '{t['last_month_end']}' "
+        "GROUP BY month ORDER BY month",
+    )
+    add(
+        "Average monthly spend over the last three months",
+        "SELECT AVG(t) AS avg_monthly_spend FROM (SELECT SUM(amount) AS t FROM v_expenses "
+        f"WHERE txn_date >= '{t['three_full_months_start']}' AND txn_date <= '{t['last_month_end']}' GROUP BY month)",
+    )
+    if has_odometer:
+        add(
+            "Petrol spend last month and km driven",
+            "SELECT (SELECT SUM(amount) FROM v_expenses WHERE merchant LIKE '%petrol%' "
+            f"AND txn_date >= '{t['last_month_start']}' AND txn_date <= '{t['last_month_end']}') AS spent, "
+            "(SELECT MAX(odometer_km) - MIN(odometer_km) FROM v_expenses WHERE odometer_km IS NOT NULL "
+            f"AND txn_date >= '{t['last_month_start']}' AND txn_date <= '{t['last_month_end']}') AS km_driven",
+        )
+    return out

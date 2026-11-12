@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import os
+import re
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from typing import Protocol
 
 DEFAULT_MODEL = "claude-sonnet-5-5"
 
-SYSTEM = """You turn one question about a person's finances into one read-only SQLite query. \
-Always answer by calling the write_query tool.
+_INTRO = "You turn one question about a person's finances into one read-only SQLite query. "
+_RULES = """
 
 Rules:
 - Use v_expenses for anything about spending. Use v_entries only for income, investments, transfers \
@@ -31,6 +35,13 @@ told otherwise) for "top" or "biggest"; a month column, ordered by month, for pe
 dates outside the data), set sql to an empty string and explain in note.
 - note: one short sentence saying what the query measures and the exact date range, so the person can spot \
 a misreading."""
+
+SYSTEM = _INTRO + "Always answer by calling the write_query tool." + _RULES
+JSON_SYSTEM = (
+    _INTRO
+    + 'Answer with one JSON object and nothing else: {"sql": "<query or empty string>", "note": "<one sentence>"}.'
+    + _RULES
+)
 
 TOOL = {
     "name": "write_query",
@@ -63,6 +74,8 @@ class SQLWriter(Protocol):
 
 
 class AnthropicSQLWriter:
+    local = False
+
     def __init__(self, client=None, model: str | None = None):
         import anthropic
 
@@ -75,11 +88,7 @@ class AnthropicSQLWriter:
         return cls() if os.environ.get("ANTHROPIC_API_KEY") else None
 
     def write_query(self, question: str, context: str, previous: tuple[str, str] | None = None) -> Draft:
-        prompt = f"{context}\n\nQuestion: {question}"
-        if previous:
-            sql, error = previous
-            prompt += f"\n\nYour previous query failed.\nQuery:\n{sql}\nError: {error}\nWrite a corrected query."
-
+        prompt = _prompt(question, context, previous)
         try:
             response = self.client.messages.create(
                 model=self.name,
@@ -99,3 +108,106 @@ class AnthropicSQLWriter:
         sql = (data.get("sql") or "").strip()
         note = (data.get("note") or "").strip() or None
         return Draft(sql=sql or None, note=note)
+
+
+def _prompt(question: str, context: str, previous: tuple[str, str] | None) -> str:
+    prompt = f"{context}\n\nQuestion: {question}"
+    if previous:
+        sql, error = previous
+        prompt += f"\n\nYour previous query failed.\nQuery:\n{sql}\nError: {error}\nWrite a corrected query."
+    return prompt
+
+
+_FENCE = re.compile(r"```(?:sql|json)?\s*(.*?)```", re.S | re.I)
+
+
+def parse_draft(text: str) -> Draft:
+    """Read {"sql", "note"} from a model reply, forgiving the ways small models stray from it."""
+    text = (text or "").strip()
+    candidates = [text] + _FENCE.findall(text)
+    brace = re.search(r"\{.*\}", text, re.S)
+    if brace:
+        candidates.append(brace.group(0))
+    for candidate in candidates:
+        try:
+            data = json.loads(candidate)
+        except ValueError:
+            continue
+        if isinstance(data, dict) and "sql" in data:
+            sql = str(data.get("sql") or "").strip()
+            note = str(data.get("note") or "").strip() or None
+            return Draft(sql=sql or None, note=note)
+    for candidate in _FENCE.findall(text) + [text]:  # bare SQL, fenced or not
+        if re.match(r"\s*(select|with)\b", candidate, re.I):
+            return Draft(sql=candidate.strip(), note=None)
+    raise LLMError("The model did not return a query.")
+
+
+PROVIDERS = {
+    # name: (base URL, env var holding the key, default model)
+    "ollama": ("http://localhost:11434/v1", None, "qwen2.5-coder:7b"),
+    "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY", None),
+    "openai-compatible": (None, "MUNIM_API_KEY", None),
+}
+_LOCAL_HOSTS = ("://localhost", "://127.0.0.1", "://[::1]")
+
+
+class OpenAICompatSQLWriter:
+    """Any server that speaks /chat/completions: Ollama on this machine, Groq, and others."""
+
+    def __init__(self, base_url: str, model: str, api_key: str | None = None, timeout: float = 120.0, opener=None):
+        self.base_url = base_url.rstrip("/")
+        self.name = model
+        self.api_key = api_key
+        self.timeout = timeout  # generous: a local model may need to load first
+        self.local = self.base_url.startswith(tuple("http" + h for h in _LOCAL_HOSTS))
+        self._open = opener or urllib.request.urlopen
+
+    def write_query(self, question: str, context: str, previous: tuple[str, str] | None = None) -> Draft:
+        body = {
+            "model": self.name,
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": JSON_SYSTEM},
+                {"role": "user", "content": _prompt(question, context, previous)},
+            ],
+        }
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        request = urllib.request.Request(
+            f"{self.base_url}/chat/completions", data=json.dumps(body).encode(), headers=headers, method="POST"
+        )
+        try:
+            with self._open(request, timeout=self.timeout) as response:
+                payload = json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", "replace")[:300]
+            raise LLMError(f"{self.name} answered HTTP {exc.code}: {detail}") from exc
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            hint = " Is Ollama running? Start it with `ollama serve`." if self.local else ""
+            raise LLMError(f"Could not reach {self.base_url}: {getattr(exc, 'reason', exc)}.{hint}") from exc
+        except ValueError as exc:
+            raise LLMError("The model server sent a reply that is not JSON.") from exc
+        try:
+            text = payload["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise LLMError("The model server sent an unexpected reply.") from exc
+        return parse_draft(text)
+
+
+def writer_from_env() -> SQLWriter | None:
+    """Pick the model from MUNIM_PROVIDER. None means Ask is not set up."""
+    provider = (os.environ.get("MUNIM_PROVIDER") or "anthropic").strip().lower()
+    if provider == "anthropic":
+        return AnthropicSQLWriter.from_env()
+    if provider not in PROVIDERS:
+        return None
+    base, key_var, default_model = PROVIDERS[provider]
+    base = os.environ.get("MUNIM_BASE_URL") or base
+    model = os.environ.get("MUNIM_MODEL") or default_model
+    key = os.environ.get(key_var) if key_var else None
+    if not base or not model or (provider == "groq" and not key):
+        return None
+    return OpenAICompatSQLWriter(base, model, api_key=key)

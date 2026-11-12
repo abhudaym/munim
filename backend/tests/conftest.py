@@ -13,6 +13,8 @@ def _no_real_model(monkeypatch):
     """No test may reach the real API, whatever the environment holds."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("MUNIM_MODEL", raising=False)
+    monkeypatch.delenv("MUNIM_PROVIDER", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     monkeypatch.delenv("MUNIM_SEND_MERCHANTS", raising=False)
 
 

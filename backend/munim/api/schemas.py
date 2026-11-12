@@ -25,6 +25,7 @@ class TransactionOut(BaseModel):
 
 class TransactionPage(BaseModel):
     total: int
+    amount_total: float
     limit: int
     offset: int
     items: list[TransactionOut]
@@ -104,4 +105,5 @@ class QuestionOut(BaseModel):
 class AskStatus(BaseModel):
     ready: bool
     model: str | None
+    local: bool = False
     sends_merchants: bool

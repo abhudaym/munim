@@ -132,3 +132,48 @@ def test_category_survives_reimport(client, tmp_path):
     client.patch("/api/category-map/Garage", json={"kind": "transfer"})
     upload(client, tmp_path, [row(6, "Garage", "Petrol", 100)] + sample_rows(), name="n.xlsx", dry_run=False)
     assert client.get("/api/summary").json()["total"] == 530  # new Garage row also follows the override
+
+
+# ---------------------------------------------------------------- tag and merchant filters
+
+def _ask_data(client, tmp_path):
+    from tests.helpers import ask_rows
+
+    assert load(client, tmp_path, ask_rows()).status_code == 200
+
+
+def test_filter_by_tag_gives_rows_and_their_total(client, tmp_path):
+    _ask_data(client, tmp_path)
+    page = client.get("/api/transactions", params={"subcategory": "coffee", "kind": "expense"}).json()
+    assert page["total"] == 5 and page["amount_total"] == 1440
+
+
+def test_filter_by_tag_and_merchant(client, tmp_path):
+    _ask_data(client, tmp_path)
+    page = client.get("/api/transactions", params={"subcategory": "coffee", "merchant": "Blue Tokai"}).json()
+    assert page["total"] == 4 and page["amount_total"] == 1190
+
+
+def test_untagged_entries_can_be_found(client, tmp_path):
+    _ask_data(client, tmp_path)
+    page = client.get("/api/transactions", params={"subcategory": "(none)", "kind": "expense"}).json()
+    assert {t["note_raw"] for t in page["items"]} == {"Petrol"}
+    assert all(t["subcategory"] is None for t in page["items"])
+
+
+def test_summary_lists_tags_within_a_category(client, tmp_path):
+    _ask_data(client, tmp_path)
+    s = client.get("/api/summary", params={"group_by": "subcategory", "category": "Food"}).json()
+    assert [(r["key"], r["count"], r["total"]) for r in s["rows"]] == [("eatout", 2, 1450), ("coffee", 5, 1440)]
+
+
+def test_summary_lists_merchants_within_a_tag(client, tmp_path):
+    _ask_data(client, tmp_path)
+    s = client.get("/api/summary", params={"group_by": "merchant", "subcategory": "coffee"}).json()
+    assert [(r["key"], r["total"]) for r in s["rows"]] == [("blue tokai", 1190), ("third wave", 250)]
+
+
+def test_summary_by_month_respects_filters(client, tmp_path):
+    _ask_data(client, tmp_path)
+    s = client.get("/api/summary", params={"group_by": "month", "subcategory": "coffee", "q": "tokai"}).json()
+    assert s["total"] == 1190 and len(s["rows"]) == 3

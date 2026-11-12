@@ -65,7 +65,7 @@ export default function Ask() {
 
       {status && !status.ready && (
         <div className="banner" role="status">
-          No model is configured. Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> and restart the server.
+          No model is configured. Pick one in <code>.env</code> (see <code>.env.example</code>) and restart the server.
         </div>
       )}
 
@@ -144,7 +144,10 @@ export default function Ask() {
         </section>
       )}
 
-      {status?.ready && (
+      {status?.ready && status.local && (
+        <p className="muted fine">Answered by {status.model} running on this machine. Nothing leaves it.</p>
+      )}
+      {status?.ready && !status.local && (
         <p className="muted fine">
           Questions go to {status.model}, along with category names{status.sends_merchants ? ", frequent merchant names" : ""} and
           the date range. Amounts and individual transactions never leave this machine.

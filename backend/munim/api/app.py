@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from munim import __version__, config
 from munim.api.routes import router
 from munim.db import init_db, make_engine
-from munim.ask import AnthropicSQLWriter, SQLWriter
+from munim.ask import SQLWriter, writer_from_env
 from munim.db.session import make_session_factory
 
 
@@ -34,7 +34,7 @@ def create_app(
     app.state.session_factory = make_session_factory(engine)
     app.state.db_path = data / "munim.db"
     if llm is None and load_llm_from_env:
-        llm = AnthropicSQLWriter.from_env()  # None when no key is configured
+        llm = writer_from_env()  # None when nothing is configured
     app.state.llm = llm
     app.include_router(router)
 

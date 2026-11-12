@@ -12,7 +12,7 @@ export type Txn = {
   description: string | null;
   deleted_at: string | null;
 };
-export type TxnPage = { total: number; limit: number; offset: number; items: Txn[] };
+export type TxnPage = { total: number; amount_total: number; limit: number; offset: number; items: Txn[] };
 
 export type SummaryRow = { key: string; total: number; count: number };
 export type Summary = { group_by: string; total: number; count: number; rows: SummaryRow[] };
@@ -63,7 +63,7 @@ export type AskResult = {
   headline: number | null;
   model: string | null;
 };
-export type AskStatus = { ready: boolean; model: string | null; sends_merchants: boolean };
+export type AskStatus = { ready: boolean; model: string | null; local: boolean; sends_merchants: boolean };
 export type AskHistoryItem = {
   id: number;
   asked_at: string;
@@ -104,7 +104,16 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question }),
     }),
-  summary: (p: { group_by: string; from?: string; to?: string; kind?: string }) =>
+  summary: (p: {
+    group_by: string;
+    from?: string;
+    to?: string;
+    kind?: string;
+    category?: string;
+    subcategory?: string;
+    merchant?: string;
+    q?: string;
+  }) =>
     request<Summary>(`/api/summary${qs(p)}`),
   transactions: (p: Record<string, string | number | undefined>) =>
     request<TxnPage>(`/api/transactions${qs(p)}`),

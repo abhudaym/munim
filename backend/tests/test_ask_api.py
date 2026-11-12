@@ -30,12 +30,12 @@ def test_status_without_a_model(make_client):
 
 def test_status_with_a_model(make_client):
     body = make_client(FakeLLM()).get("/api/ask/status").json()
-    assert body == {"ready": True, "model": "fake-model", "sends_merchants": True}
+    assert body == {"ready": True, "model": "fake-model", "local": False, "sends_merchants": True}
 
 
 def test_ask_without_a_model_is_503(make_client):
     r = make_client(None).post("/api/ask", json={"question": "coffee spend?"})
-    assert r.status_code == 503 and "ANTHROPIC_API_KEY" in r.json()["detail"]
+    assert r.status_code == 503 and "MUNIM_PROVIDER" in r.json()["detail"]
 
 
 def test_ask_answers_and_history_records_it(make_client):

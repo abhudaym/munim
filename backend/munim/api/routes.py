@@ -33,6 +33,7 @@ router = APIRouter(prefix="/api")
 
 MAX_UPLOAD = 25 * 1024 * 1024
 SHA = re.compile(r"^[0-9a-f]{64}$")
+NONE_KEY = "(none)"
 
 
 # ---------------------------------------------------------------- imports
@@ -132,9 +133,13 @@ def _filters(
         stmt = stmt.where(Transaction.kind == kind)
     if category:
         stmt = stmt.where(Transaction.category == category)
-    if subcategory:
+    if subcategory == NONE_KEY:  # entries with no "Prefix:" in the note
+        stmt = stmt.where(Transaction.subcategory.is_(None))
+    elif subcategory:
         stmt = stmt.where(Transaction.subcategory == subcategory.lower())
-    if merchant:
+    if merchant == NONE_KEY:
+        stmt = stmt.where(Transaction.merchant.is_(None))
+    elif merchant:
         stmt = stmt.where(Transaction.merchant == merchant.lower())
     if q:
         like = f"%{q.strip().lower()}%"
@@ -162,14 +167,18 @@ def list_transactions(
     session: Session = Depends(get_session),
 ):
     args = (date_from, date_to, kind, category, subcategory, merchant, q, include_deleted)
-    total = session.scalar(_filters(select(func.count()).select_from(Transaction), *args))
+    total, amount_total = session.execute(
+        _filters(select(func.count(), func.sum(Transaction.amount)).select_from(Transaction), *args)
+    ).one()
     items = session.scalars(
         _filters(select(Transaction), *args)
         .order_by(Transaction.txn_ts.desc(), Transaction.dup_seq.desc())
         .limit(limit)
         .offset(offset)
     ).all()
-    return TransactionPage(total=total or 0, limit=limit, offset=offset, items=items)
+    return TransactionPage(
+        total=total or 0, amount_total=round(amount_total or 0, 2), limit=limit, offset=offset, items=items
+    )
 
 
 # ----------------------------------------------------------------- summary
@@ -180,9 +189,17 @@ def summary(
     date_from: date | None = Query(None, alias="from"),
     date_to: date | None = Query(None, alias="to"),
     kind: str = "expense",
+    category: str | None = None,
+    subcategory: str | None = None,
+    merchant: str | None = None,
+    q: str | None = None,
     session: Session = Depends(get_session),
 ):
-    """Totals for one kind (default: expense; transfers like SIPs and EMIs are excluded)."""
+    """Totals for one kind (default: expense; transfers like SIPs and EMIs are excluded).
+
+    Takes the same filters as /transactions, so it doubles as the source of filter options:
+    group by subcategory within a category to list that category's tags with counts.
+    """
     columns = {
         "category": Transaction.category,
         "subcategory": Transaction.subcategory,
@@ -192,12 +209,12 @@ def summary(
     key = columns[group_by]
     total = func.sum(Transaction.amount)
     stmt = _filters(
-        select(key, total, func.count()), date_from, date_to, kind, None, None, None, None
+        select(key, total, func.count()), date_from, date_to, kind, category, subcategory, merchant, q
     ).group_by(key)
     stmt = stmt.order_by(key.asc() if group_by == "month" else total.desc())
 
     rows = [
-        SummaryRow(key=k if k is not None else "(none)", total=round(t or 0, 2), count=c)
+        SummaryRow(key=k if k is not None else NONE_KEY, total=round(t or 0, 2), count=c)
         for k, t, c in session.execute(stmt)
     ]
     return Summary(
@@ -250,14 +267,19 @@ def patch_category_map(
 @router.get("/ask/status", response_model=AskStatus)
 def ask_status(request: Request):
     llm = request.app.state.llm
-    return AskStatus(ready=llm is not None, model=getattr(llm, "name", None), sends_merchants=send_merchants_enabled())
+    return AskStatus(
+        ready=llm is not None,
+        model=getattr(llm, "name", None),
+        local=bool(getattr(llm, "local", False)),
+        sends_merchants=send_merchants_enabled(),
+    )
 
 
 @router.post("/ask", response_model=AskOut)
 def ask_question(body: AskIn, request: Request):
     llm = request.app.state.llm
     if llm is None:
-        raise HTTPException(503, "No model is configured. Set ANTHROPIC_API_KEY in .env and restart.")
+        raise HTTPException(503, "No model is configured. Set MUNIM_PROVIDER (or ANTHROPIC_API_KEY) in .env and restart.")
     try:
         result = run_ask(
             body.question,

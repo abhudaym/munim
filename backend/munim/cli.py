@@ -63,11 +63,11 @@ def _open(args: argparse.Namespace):
 
 
 def _writer():
-    from munim.ask import AnthropicSQLWriter
+    from munim.ask import writer_from_env
 
-    llm = AnthropicSQLWriter.from_env()
+    llm = writer_from_env()
     if llm is None:
-        print("No model configured: set ANTHROPIC_API_KEY in .env", file=sys.stderr)
+        print("No model configured: see .env.example (MUNIM_PROVIDER)", file=sys.stderr)
     return llm
 
 

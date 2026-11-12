@@ -40,10 +40,27 @@ Rows outside the file's date range are never touched, so an older export stays v
 
 Also done on the way in: emoji stripped from category names, `Coffee: blue tokai` split into subcategory `coffee` and merchant `blue tokai`, and Investments and EMI marked as transfers so they stay out of spend totals (change this under Import > Categories).
 
+## Filtering
+
+The importer splits a note like `Coffee: blue tokai` into a tag (`coffee`) and a merchant
+(`blue tokai`). The Transactions page filters on both, with date presets, a running total and a
+breakdown by month, tag or merchant. Entries with no `Prefix:` show up under "Untagged".
+`/api/summary` takes the same filters as `/api/transactions`.
+
 ## Asking questions
 
 `munim ask "how much did I spend on coffee in the last three months?"`, or use the **Ask** page.
-Put `ANTHROPIC_API_KEY` in `.env` (see `.env.example`); `MUNIM_MODEL` picks the model.
+Pick a model in `.env` (see `.env.example`):
+
+| `MUNIM_PROVIDER` | Cost | Where it runs | Needs |
+|---|---|---|---|
+| `ollama` | free | this machine | [Ollama](https://ollama.com) and `ollama pull qwen2.5-coder:7b` (about 5 GB of RAM while answering) |
+| `groq` | free tier | Groq's servers | `GROQ_API_KEY` and a `MUNIM_MODEL` id from their console |
+| `anthropic` (default) | paid | Anthropic's servers | `ANTHROPIC_API_KEY` |
+| `openai-compatible` | varies | wherever `MUNIM_BASE_URL` points | `MUNIM_MODEL`, optional `MUNIM_API_KEY` |
+
+Ollama loads the model when you ask and unloads it after a few idle minutes, so the first
+question after a gap is slow. Run `munim eval` after switching models to see how well one does.
 
 The model only writes a query; your machine runs it. Two views are all it can see:
 `v_expenses` (live spending, so transfers and income are excluded by construction) and
@@ -51,7 +68,7 @@ The model only writes a query; your machine runs it. Two views are all it can se
 a table whitelist, a 5 s limit and a 500-row cap. Every question and its query is kept in the
 `questions` table (never the result rows).
 
-**What leaves this machine:** your question, category and subcategory names, merchant names used
+**What leaves this machine** (hosted models only; with Ollama, nothing): your question, category and subcategory names, merchant names used
 at least 3 times (set `MUNIM_SEND_MERCHANTS=0` to withhold), and the date range. Never amounts or
 individual transactions.
 

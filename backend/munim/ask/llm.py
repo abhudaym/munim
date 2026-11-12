@@ -27,9 +27,11 @@ day, in the latest year that has data for it.
 - category must match a listed name exactly. subcategory and merchant are lowercase; match merchant with \
 LIKE '%text%' in lowercase. Words like coffee, eating out and delivery are subcategories (coffee, eatout, \
 delivery) when they are listed.
-- Per-month breakdowns and monthly averages over "the last 3/6/12 months" use whole calendar months only: \
+- A single total or count over "the last 3/6/12 months" runs from three_months_ago / six_months_ago / \
+twelve_months_ago to today, including the current month so far. Only a month-by-month breakdown or a monthly \
+average over those periods uses whole calendar months: \
 txn_date >= three_full_months_start / six_full_months_start / twelve_full_months_start AND txn_date <= \
-last_month_end. Say in note that the current, unfinished month is left out.
+last_month_end. Then say in note that the current, unfinished month is left out.
 - "Average per month" is AVG over a subquery that first sums by month: SELECT AVG(t) FROM (SELECT SUM(amount) \
 AS t FROM ... GROUP BY month). AVG(amount) alone is the average entry, which is a different thing.
 - "Biggest/largest single expense" means one entry: ORDER BY amount DESC LIMIT 1 with its date, category, \

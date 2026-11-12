@@ -89,3 +89,17 @@ class Transaction(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
     first_import_id: Mapped[int] = mapped_column(ForeignKey("imports.id"))
     last_import_id: Mapped[int] = mapped_column(ForeignKey("imports.id"))
+
+
+class DashboardTile(Base):
+    """A pinned question. Holds the query (with date placeholders when rolling), never the numbers."""
+
+    __tablename__ = "dashboard_tiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    title: Mapped[str] = mapped_column(String(120))
+    question: Mapped[str] = mapped_column(Text)
+    sql: Mapped[str] = mapped_column(Text)
+    chart: Mapped[str] = mapped_column(String(20))
+    position: Mapped[int] = mapped_column(Integer, default=0)

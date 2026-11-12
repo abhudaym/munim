@@ -8,7 +8,9 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from munim.ask.charts import choose_chart
 from munim.ask.context import build_context
+from munim.ask.dashboard import is_rolling, to_template
 from munim.ask.guard import GuardError, check_sql
 from munim.ask.llm import LLMError, SQLWriter
 from munim.ask.runner import QueryError, QueryResult, connect_readonly, run_query
@@ -29,6 +31,11 @@ class AskResult:
     attempts: int = 0
     headline: float | int | None = None  # set when the answer is one number
     model: str | None = None
+    chart: str = "table"  # suggested drawing for this shape of result
+    charts: list[str] = field(default_factory=lambda: ["table"])
+    value_col: int | None = None
+    time: bool = False
+    rolling: bool = False  # the dates are relative to today, so a pinned tile can keep moving
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -77,6 +84,9 @@ def ask(
             out.error = None
             out.columns, out.rows, out.truncated = result.columns, result.rows, result.truncated
             out.headline = _headline(result)
+            choice = choose_chart(result.columns, result.rows)
+            out.chart, out.charts, out.value_col, out.time = choice.chart, choice.charts, choice.value_col, choice.time
+            out.rolling = is_rolling(to_template(out.sql, today))
             break
     except LLMError as exc:
         llm_error = exc

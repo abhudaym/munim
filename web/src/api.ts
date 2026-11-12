@@ -62,6 +62,26 @@ export type AskResult = {
   attempts: number;
   headline: number | null;
   model: string | null;
+  chart: string;
+  charts: string[];
+  value_col: number | null;
+  time: boolean;
+  rolling: boolean;
+};
+export type Tile = {
+  id: number;
+  title: string;
+  question: string;
+  sql: string;
+  rolling: boolean;
+  chart: string;
+  charts: string[];
+  value_col: number | null;
+  time: boolean;
+  columns: string[];
+  rows: (string | number | null)[][];
+  truncated: boolean;
+  error: string | null;
 };
 export type AskStatus = { ready: boolean; model: string | null; local: boolean; sends_merchants: boolean };
 export type AskHistoryItem = {
@@ -95,7 +115,22 @@ const qs = (params: Record<string, string | number | undefined>) => {
   return s ? `?${s}` : "";
 };
 
+const json = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
 export const api = {
+  dashboard: () => request<Tile[]>("/api/dashboard"),
+  pinTile: (body: { title: string; question: string; sql: string; chart?: string; rolling?: boolean }) =>
+    request<Tile>("/api/dashboard/tiles", json("POST", body)),
+  patchTile: (id: number, body: { title?: string; chart?: string; move?: -1 | 1 }) =>
+    request<Tile>(`/api/dashboard/tiles/${id}`, json("PATCH", body)),
+  deleteTile: async (id: number) => {
+    const res = await fetch(`/api/dashboard/tiles/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  },
   askStatus: () => request<AskStatus>("/api/ask/status"),
   askHistory: () => request<AskHistoryItem[]>("/api/ask/history?limit=8"),
   ask: (question: string) =>

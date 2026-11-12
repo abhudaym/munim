@@ -89,6 +89,11 @@ class AskOut(BaseModel):
     attempts: int
     headline: float | None
     model: str | None
+    chart: str = "table"
+    charts: list[str] = ["table"]
+    value_col: int | None = None
+    time: bool = False
+    rolling: bool = False
 
 
 class QuestionOut(BaseModel):
@@ -107,3 +112,36 @@ class AskStatus(BaseModel):
     model: str | None
     local: bool = False
     sends_merchants: bool
+
+
+Chart = Literal["number", "bars", "line", "table"]
+
+
+class TileIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    question: str = Field(min_length=1, max_length=500)
+    sql: str = Field(min_length=1, max_length=4000)
+    chart: Chart | None = None  # None: use the suggestion
+    rolling: bool = True
+
+
+class TilePatch(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    chart: Chart | None = None
+    move: Literal[-1, 1] | None = None  # one step earlier or later
+
+
+class TileOut(BaseModel):
+    id: int
+    title: str
+    question: str
+    sql: str
+    rolling: bool
+    chart: str
+    charts: list[str]
+    value_col: int | None
+    time: bool
+    columns: list[str]
+    rows: list[list]
+    truncated: bool
+    error: str | None

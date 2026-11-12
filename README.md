@@ -75,6 +75,21 @@ individual transactions.
 `munim eval` scores the model against ~20 golden questions with hand-written reference queries
 (real API calls; run it by hand after changing the model or prompt).
 
+## Dashboard
+
+Any answer on the Ask page can be pinned as a tile; the Dashboard page can also ask and pin in one
+step. A tile is a row in `dashboard_tiles`: title, question, query, chart type, position. The
+numbers are not stored. Each time the page opens, every tile's query goes through the same guard
+and read-only runner as a fresh question, so tiles follow your imports and the model is not called
+again.
+
+- **Chart type** comes from the shape of the result (`ask/charts.py`), not from the model: one
+  number, bars or a line for one value per month or date, ranked bars for one value per name, a
+  table for everything else. You can switch between the types that fit.
+- **Rolling dates:** when a query's dates match a known window (start of this month, three months
+  ago, and so on) they are stored as placeholders and filled in on each run. Choose "Fixed" when
+  pinning to freeze them.
+
 ## API
 
 | Endpoint | Does |

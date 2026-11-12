@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, AskHistoryItem, AskResult, AskStatus } from "../api";
-import { inr, monthLabel } from "../format";
+import Chart, { ChartPicker } from "../components/Chart";
 
 const SUGGESTIONS = [
   "How much did I spend on coffee this month?",
@@ -10,15 +10,6 @@ const SUGGESTIONS = [
   "Which merchant did I spend the most at this year?",
 ];
 
-const MONEY = /(amount|total|spent|spend|sum|avg|average|income|expense|max|min|cost)/i;
-const isMonth = (v: unknown) => typeof v === "string" && /^\d{4}-\d{2}$/.test(v);
-
-function cell(column: string, value: string | number | null) {
-  if (value === null) return <span className="muted">–</span>;
-  if (typeof value === "number") return MONEY.test(column) ? inr(value) : value.toLocaleString("en-IN");
-  return isMonth(value) ? monthLabel(value) : value;
-}
-
 export default function Ask() {
   const [status, setStatus] = useState<AskStatus | null>(null);
   const [question, setQuestion] = useState("");
@@ -26,6 +17,11 @@ export default function Ask() {
   const [history, setHistory] = useState<AskHistoryItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [kind, setKind] = useState("table");
+  const [pinning, setPinning] = useState(false);
+  const [title, setTitle] = useState("");
+  const [rolling, setRolling] = useState(true);
+  const [pinned, setPinned] = useState("");
 
   const loadHistory = useCallback(() => {
     api.askHistory().then(setHistory).catch(() => undefined);
@@ -42,7 +38,13 @@ export default function Ask() {
     setBusy(true);
     setError("");
     try {
-      setResult(await api.ask(text));
+      const answer = await api.ask(text);
+      setResult(answer);
+      setKind(answer.chart);
+      setPinning(false);
+      setPinned("");
+      setTitle(text.replace(/\?$/, "").slice(0, 120));
+      setRolling(true);
     } catch (e) {
       setResult(null);
       setError((e as Error).message);
@@ -51,6 +53,17 @@ export default function Ask() {
       loadHistory();
     }
   };
+  const pin = async () => {
+    if (!result?.sql || !title.trim()) return;
+    try {
+      await api.pinTile({ title: title.trim(), question: result.question, sql: result.sql, chart: kind, rolling });
+      setPinning(false);
+      setPinned(title.trim());
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const canPin = !!result && !result.error && !!result.sql && result.rows.length > 0;
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void submit(question);
@@ -99,28 +112,44 @@ export default function Ask() {
           <h2>{result.question}</h2>
           {result.error && <div className="banner error">I couldn't answer that: {result.error}</div>}
           {!result.error && result.sql === null && <p>{result.note || "That's not something I can answer from your spending."}</p>}
-          {result.headline !== null && (
-            <div className="headline">{MONEY.test(result.columns[0]) ? inr(result.headline) : result.headline.toLocaleString("en-IN")}</div>
-          )}
-          {result.headline === null && result.columns.length > 0 && (
-            <div className="scroll">
-              <table>
-                <thead>
-                  <tr>{result.columns.map((c) => <th key={c} className={typeof result.rows[0]?.[result.columns.indexOf(c)] === "number" ? "right" : ""}>{c.replace(/_/g, " ")}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {result.rows.map((r, i) => (
-                    <tr key={i}>
-                      {r.map((v, j) => <td key={j} className={typeof v === "number" ? "right" : ""}>{cell(result.columns[j], v)}</td>)}
-                    </tr>
-                  ))}
-                  {result.rows.length === 0 && <tr><td colSpan={result.columns.length} className="muted">No matching entries.</td></tr>}
-                </tbody>
-              </table>
-            </div>
+          {!result.error && result.sql !== null && (
+            <>
+              <div className="row" style={{ alignItems: "center", margin: "12px 0" }}>
+                <ChartPicker options={result.charts} value={kind} onChange={setKind} label="Show as" />
+                {canPin && !pinning && (
+                  <button type="button" className="btn" onClick={() => setPinning(true)}>Pin to dashboard</button>
+                )}
+              </div>
+              <Chart data={result} kind={kind} />
+            </>
           )}
           {result.truncated && <p className="muted">Showing the first {result.rows.length} rows.</p>}
           {result.note && result.sql !== null && <p className="muted">{result.note}</p>}
+          {pinning && (
+            <div className="card pin">
+              <label className="field">
+                Tile title
+                <input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
+              </label>
+              {result.rolling && (
+                <label className="field">
+                  Dates
+                  <select value={rolling ? "rolling" : "fixed"} onChange={(e) => setRolling(e.target.value === "rolling")}>
+                    <option value="rolling">Rolling: moves with today</option>
+                    <option value="fixed">Fixed: the dates in this answer</option>
+                  </select>
+                </label>
+              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <button type="button" className="btn primary" disabled={!title.trim()} onClick={() => void pin()}>Add to dashboard</button>
+                <button type="button" className="btn" onClick={() => setPinning(false)}>Cancel</button>
+                <span className="muted fine">The saved query re-runs on this machine. The model is not called again.</span>
+              </div>
+            </div>
+          )}
+          {pinned && (
+            <div className="banner ok" role="status">Pinned “{pinned}”. <a href="#dashboard">Open the dashboard</a></div>
+          )}
           {result.sql && (
             <details>
               <summary className="muted">Query that ran</summary>

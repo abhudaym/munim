@@ -230,3 +230,35 @@ button.link:hover { color: var(--accent); }
 .bar-row { display: grid; grid-template-columns: minmax(90px, 160px) 1fr 40px minmax(90px, auto); gap: 12px; align-items: center; }
 .track { display: block; height: 12px; border-radius: 6px; background: var(--raised); }
 .fill { display: block; height: 12px; border-radius: 6px; background: var(--accent); }
+
+/* charts */
+.bar-row.three { grid-template-columns: minmax(90px, 160px) 1fr minmax(90px, auto); }
+.tchart { display: grid; gap: 8px; }
+.readout { min-height: 24px; }
+.plot { position: relative; display: flex; gap: 2px; height: 200px; border-bottom: 1px solid var(--line); }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.plot polyline { stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.slot { position: relative; flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: none; display: flex; align-items: flex-end; justify-content: center; cursor: default; }
+.slot:hover, .slot:focus-visible { background: rgba(255, 255, 255, 0.04); outline: none; }
+.colbar { display: block; width: 100%; max-width: 56px; border-radius: 4px 4px 0 0; background: #36404c; }
+.slot.on .colbar { background: var(--accent); }
+.dot { position: absolute; left: 50%; width: 8px; height: 8px; margin: 0 0 -5px -5px; border-radius: 50%; background: var(--accent); border: 2px solid var(--card); opacity: 0; }
+.slot.on .dot { opacity: 1; }
+.xaxis { display: flex; gap: 2px; font-size: 12px; color: var(--muted); }
+.xaxis span { flex: 1; min-width: 0; text-align: center; white-space: nowrap; overflow: hidden; }
+
+/* dashboard */
+.dash { display: grid; gap: 16px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.tile { grid-column: span 3; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tile.small { grid-column: span 2; }
+.tile.wide { grid-column: span 6; }
+.tile-head { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; }
+.tile-q { font-size: 12px; margin-top: auto; }
+.tile .headline { margin: 0; font-size: 36px; }
+.tile-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); }
+.icon-btn { width: 44px; height: 44px; flex: none; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.icon-btn:hover { color: var(--text); background: var(--raised); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.danger { color: var(--bad); }
+.pin { display: grid; gap: 12px; border-color: var(--accent); }
+@media (max-width: 900px) { .tile, .tile.small { grid-column: span 6; } }

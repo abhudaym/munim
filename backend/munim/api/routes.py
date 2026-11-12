@@ -15,6 +15,9 @@ from munim.api.schemas import (
     AskOut,
     AskStatus,
     QuestionOut,
+    TileIn,
+    TileOut,
+    TilePatch,
     CategoryMapOut,
     CategoryMapPatch,
     ImportOut,
@@ -25,7 +28,9 @@ from munim.api.schemas import (
 )
 from munim.ask import LLMError, ask as run_ask
 from munim.ask.context import send_merchants_enabled
-from munim.db import CategoryMap, Import, Question, Transaction
+from munim.ask import GuardError, check_sql, connect_readonly
+from munim.ask.dashboard import is_rolling, render, run_tile, to_template
+from munim.db import CategoryMap, DashboardTile, Import, Question, Transaction
 from munim.importer import ImportFormatError, commit_import, preview_import
 from munim.importer.service import safe_filename
 
@@ -295,3 +300,95 @@ def ask_question(body: AskIn, request: Request):
 @router.get("/ask/history", response_model=list[QuestionOut])
 def ask_history(limit: int = Query(20, ge=1, le=100), session: Session = Depends(get_session)):
     return session.scalars(select(Question).order_by(Question.id.desc()).limit(limit)).all()
+
+
+# ---------------------------------------------------------------- dashboard
+
+def _tile_out(tile: DashboardTile, conn, today: date) -> TileOut:
+    return TileOut(
+        id=tile.id,
+        title=tile.title,
+        question=tile.question,
+        sql=render(tile.sql, today),
+        rolling=is_rolling(tile.sql),
+        **run_tile(conn, tile.sql, tile.chart, today),
+    )
+
+
+def _tiles(session: Session) -> list[DashboardTile]:
+    return list(session.scalars(select(DashboardTile).order_by(DashboardTile.position, DashboardTile.id)))
+
+
+@router.get("/dashboard", response_model=list[TileOut])
+def dashboard(request: Request, session: Session = Depends(get_session)):
+    """Every tile, freshly run. The model is not involved."""
+    today = date.today()
+    conn = connect_readonly(request.app.state.db_path)
+    try:
+        return [_tile_out(t, conn, today) for t in _tiles(session)]
+    finally:
+        conn.close()
+
+
+@router.post("/dashboard/tiles", response_model=TileOut, status_code=201)
+def pin_tile(body: TileIn, request: Request, session: Session = Depends(get_session)):
+    today = date.today()
+    try:
+        sql = check_sql(body.sql)
+    except GuardError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    template = to_template(sql, today) if body.rolling else sql
+
+    conn = connect_readonly(request.app.state.db_path)
+    try:
+        first = run_tile(conn, template, body.chart or "table", today)
+        if first["error"]:
+            raise HTTPException(422, first["error"])
+        chart = body.chart if body.chart in first["charts"] else first["charts"][0]
+        last = session.scalar(select(func.max(DashboardTile.position)))
+        tile = DashboardTile(
+            title=body.title.strip(),
+            question=" ".join(body.question.split()),
+            sql=template,
+            chart=chart,
+            position=(last if last is not None else -1) + 1,
+        )
+        session.add(tile)
+        session.commit()
+        return _tile_out(tile, conn, today)
+    finally:
+        conn.close()
+
+
+@router.patch("/dashboard/tiles/{tile_id}", response_model=TileOut)
+def patch_tile(tile_id: int, body: TilePatch, request: Request, session: Session = Depends(get_session)):
+    tile = session.get(DashboardTile, tile_id)
+    if tile is None:
+        raise HTTPException(404, "No such tile")
+    if body.title is not None:
+        tile.title = body.title.strip()
+    if body.chart is not None:
+        tile.chart = body.chart
+    if body.move is not None:
+        order = _tiles(session)
+        here = order.index(tile)
+        there = here + body.move
+        if 0 <= there < len(order):
+            order[here], order[there] = order[there], order[here]
+            for position, item in enumerate(order):
+                item.position = position
+    session.commit()
+    conn = connect_readonly(request.app.state.db_path)
+    try:
+        return _tile_out(tile, conn, date.today())
+    finally:
+        conn.close()
+
+
+@router.delete("/dashboard/tiles/{tile_id}", status_code=204)
+def delete_tile(tile_id: int, session: Session = Depends(get_session)):
+    tile = session.get(DashboardTile, tile_id)
+    if tile is None:
+        raise HTTPException(404, "No such tile")
+    session.delete(tile)
+    session.commit()

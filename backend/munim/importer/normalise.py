@@ -19,6 +19,20 @@ def clean_category(raw: str) -> str:
     return cleaned or raw.strip()
 
 
+def promote_description(note: str | None, description: str | None) -> tuple[str | None, str | None]:
+    """Older entries kept their text in Description and left Note empty. Move it to where it belongs.
+
+    - no note, a description      -> the description becomes the note
+    - both, and they say the same -> keep the note, drop the repeated description
+    - anything else               -> untouched (a real description stays a description)
+    """
+    if not note and description:
+        return description, None
+    if note and description and note.strip().casefold() == description.strip().casefold():
+        return note, None
+    return note, description
+
+
 def split_note(note: str | None) -> tuple[str | None, str | None]:
     """'Coffee: blue tokai' -> ('coffee', 'blue tokai'); 'Petrol' -> (None, 'petrol').
 

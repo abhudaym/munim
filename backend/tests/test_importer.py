@@ -173,3 +173,39 @@ def test_real_export_matches_the_plan(session, data_dir):
     assert set(counts) == {"coffee", "eatout", "delivery"}
     _, again = commit_import(session, REAL, "real.xlsx", data_dir)
     assert (again["new"], again["updated"], again["deleted"]) == (0, 0, 0)
+
+
+# ---------------------------------------------------------------- older entries: text in Description
+
+def _old_style_rows():
+    return [
+        row(40, "Transport 🚌", None, 500, description="Uber to airport "),
+        row(39, "Transport 🚌", None, 1000, description="Petrol"),
+        row(38, "Beauty 💅", "Haircut", 400, description="Haircut"),
+        row(2, "Garage", "Petrol", 2000, description="Xp95\n15983 kms"),
+    ]
+
+
+def test_description_only_entries_get_a_note_merchant_and_no_description(session, tmp_path, data_dir):
+    commit_import(session, make_xlsx(tmp_path / "o.xlsx", _old_style_rows()), "o.xlsx", data_dir)
+    got = {t.amount: t for t in session.scalars(select(Transaction))}
+    assert (got[500].note_raw, got[500].merchant, got[500].description) == ("Uber to airport", "uber to airport", None)
+    assert (got[1000].note_raw, got[1000].merchant) == ("Petrol", "petrol")
+    assert (got[400].note_raw, got[400].description) == ("Haircut", None)  # repeat dropped
+    assert (got[2000].note_raw, got[2000].description, got[2000].odometer_km) == ("Petrol", "Xp95\n15983 kms", 15983)
+
+
+def test_entries_imported_before_the_rule_are_upgraded_once(session, tmp_path, data_dir, monkeypatch):
+    path = make_xlsx(tmp_path / "o.xlsx", _old_style_rows())
+    with monkeypatch.context() as m:  # how an older version stored them
+        m.setattr("munim.importer.parser.promote_description", lambda note, description: (note, description))
+        commit_import(session, path, "o.xlsx", data_dir)
+    assert session.scalar(select(Transaction.merchant).where(Transaction.amount == 1000)) is None
+
+    path2 = make_xlsx(tmp_path / "o2.xlsx", _old_style_rows())  # same rows, different file hash
+    _, summary = commit_import(session, path2, "o2.xlsx", data_dir)
+    assert (summary["updated"], summary["new"], summary["deleted"]) == (3, 0, 0)  # the Garage row was already right
+    assert session.scalar(select(Transaction.merchant).where(Transaction.amount == 1000)) == "petrol"
+
+    _, again = commit_import(session, make_xlsx(tmp_path / "o3.xlsx", _old_style_rows()), "o3.xlsx", data_dir)
+    assert again["updated"] == 0 and again["unchanged"] == 4

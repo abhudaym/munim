@@ -1,3 +1,5 @@
+import pytest
+
 from munim.importer.normalise import clean_category, content_hash, derive_kind, split_note
 
 
@@ -46,3 +48,25 @@ def test_kind_follows_override_else_direction():
     assert derive_kind("expense", "transfer") == "transfer"
     assert derive_kind("income", None) == "income"
     assert derive_kind("expense", None) == "expense"
+
+
+# ---------------------------------------------------------------- older entries kept the text in Description
+
+from munim.importer.normalise import promote_description  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    "note,description,expected",
+    [
+        (None, "Petrol", ("Petrol", None)),
+        ("", "Tw coffee ", ("Tw coffee ", None)),
+        ("Haircut", "Haircut", ("Haircut", None)),
+        ("Haircut", " haircut ", ("Haircut", None)),
+        ("Petrol", "Xp95\n15983 kms", ("Petrol", "Xp95\n15983 kms")),
+        ("Uber dues", "Airport due for del to blr", ("Uber dues", "Airport due for del to blr")),
+        ("Coffee: blue tokai", None, ("Coffee: blue tokai", None)),
+        (None, None, (None, None)),
+    ],
+)
+def test_promote_description(note, description, expected):
+    assert promote_description(note, description) == expected

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from munim.importer.normalise import content_hash, split_note
+from munim.importer.normalise import content_hash, promote_description, split_note
 
 SHEET = "Money Manager"
 REQUIRED = ["Date", "Category", "INR", "Income/Expense"]
@@ -73,7 +73,7 @@ def parse_workbook(path: str | Path) -> ParseResult:
         amount = round(float(amount), 2)
         direction = "income" if str(rec["Income/Expense"]).strip().lower() == "income" else "expense"
         note_raw = _text(rec.get("Note"))
-        description = _text(rec.get("Description"))
+        note_raw, description = promote_description(note_raw, _text(rec.get("Description")))
         subcategory, merchant = split_note(note_raw)
 
         rows.append(

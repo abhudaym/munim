@@ -47,6 +47,14 @@ The importer splits a note like `Coffee: blue tokai` into a tag (`coffee`) and a
 breakdown by month, tag or merchant. Entries with no `Prefix:` show up under "Untagged".
 `/api/summary` takes the same filters as `/api/transactions`.
 
+## Older entries
+
+Early exports kept the text in Description and left Note empty. The importer moves it: with no
+note, the description becomes the note (so it gets a merchant like any other entry); when both say
+the same thing the repeat is dropped; a real description next to a note is left alone. Entries
+imported before this rule are upgraded the next time you import, and show once as "updated".
+Your original file stays archived unchanged in `data/raw/`.
+
 ## Odometer readings
 
 If a description holds a reading such as `15983 kms`, the importer stores it in `odometer_km`

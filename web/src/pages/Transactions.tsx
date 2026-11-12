@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, Summary, SummaryRow, TxnPage } from "../api";
-import { fmtDate, fmtTime, inr, monthLabel, Preset, PRESETS, presetRange } from "../format";
+import DateRange from "../components/DateRange";
+import { fmtDate, fmtTime, inr, monthLabel, Preset, presetRange } from "../format";
 
 const LIMIT = 50;
 const NONE = "(none)";
@@ -93,7 +94,6 @@ export default function Transactions() {
     also?.();
     setOffset(0);
   };
-  const customDate = (set: (v: string) => void) => change(set, () => setPreset("custom"));
   const reset = () => {
     pick("all");
     setKind("expense");
@@ -114,21 +114,14 @@ export default function Transactions() {
     <>
       <h1>Transactions</h1>
 
-      <div className="presets" role="group" aria-label="Date range">
-        {PRESETS.map((p) => (
-          <button type="button" key={p.id} className="preset" aria-pressed={preset === p.id} onClick={() => pick(p.id)}>
-            {p.label}
-          </button>
-        ))}
-        <label className="field">
-          From
-          <input type="date" value={from} onChange={customDate(setFrom)} />
-        </label>
-        <label className="field">
-          To
-          <input type="date" value={to} onChange={customDate(setTo)} />
-        </label>
-      </div>
+      <DateRange
+        preset={preset}
+        from={from}
+        to={to}
+        onPreset={pick}
+        onFrom={(v) => (setFrom(v), setPreset("custom"), setOffset(0))}
+        onTo={(v) => (setTo(v), setPreset("custom"), setOffset(0))}
+      />
 
       <form className="filters" onSubmit={(e) => e.preventDefault()}>
         <label className="field">

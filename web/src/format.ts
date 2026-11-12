@@ -61,3 +61,26 @@ export const presetRange = (preset: Preset, today = new Date()) => {
       return { from: "", to: "" };
   }
 };
+
+const ymd = (s: string) => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d); // local time; 'YYYY-MM-DD' alone would be read as UTC
+};
+export const fmtDay = (s: string) => day.format(ymd(s));
+
+/** Heading for a date range: a month name when it is exactly one month, else the dates. */
+export const rangeLabel = (from: string, to: string) => {
+  if (!from && !to) return "All time";
+  if (from && to && from.slice(0, 7) === to.slice(0, 7)) {
+    const b = monthBounds(from.slice(0, 7));
+    if (b.from === from && b.to === to) return monthLabel(from.slice(0, 7));
+  }
+  if (from && to) return `${fmtDay(from)} – ${fmtDay(to)}`;
+  return from ? `From ${fmtDay(from)}` : `Up to ${fmtDay(to)}`;
+};
+
+/** Does 'YYYY-MM' overlap the range? An empty end is open. */
+export const monthInRange = (ym: string, from: string, to: string) => {
+  const b = monthBounds(ym);
+  return (!from || b.to >= from) && (!to || b.from <= to);
+};

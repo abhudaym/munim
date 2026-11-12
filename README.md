@@ -40,6 +40,24 @@ Rows outside the file's date range are never touched, so an older export stays v
 
 Also done on the way in: emoji stripped from category names, `Coffee: blue tokai` split into subcategory `coffee` and merchant `blue tokai`, and Investments and EMI marked as transfers so they stay out of spend totals (change this under Import > Categories).
 
+## Asking questions
+
+`munim ask "how much did I spend on coffee in the last three months?"`, or use the **Ask** page.
+Put `ANTHROPIC_API_KEY` in `.env` (see `.env.example`); `MUNIM_MODEL` picks the model.
+
+The model only writes a query; your machine runs it. Two views are all it can see:
+`v_expenses` (live spending, so transfers and income are excluded by construction) and
+`v_entries` (everything). Queries are parsed and checked, then run on a read-only connection with
+a table whitelist, a 5 s limit and a 500-row cap. Every question and its query is kept in the
+`questions` table (never the result rows).
+
+**What leaves this machine:** your question, category and subcategory names, merchant names used
+at least 3 times (set `MUNIM_SEND_MERCHANTS=0` to withhold), and the date range. Never amounts or
+individual transactions.
+
+`munim eval` scores the model against ~20 golden questions with hand-written reference queries
+(real API calls; run it by hand after changing the model or prompt).
+
 ## API
 
 | Endpoint | Does |

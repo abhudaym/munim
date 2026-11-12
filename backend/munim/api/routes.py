@@ -5,12 +5,16 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy import func, literal, select, update
 from sqlalchemy.orm import Session
 
 from munim.api.deps import get_data_dir, get_session
 from munim.api.schemas import (
+    AskIn,
+    AskOut,
+    AskStatus,
+    QuestionOut,
     CategoryMapOut,
     CategoryMapPatch,
     ImportOut,
@@ -19,7 +23,9 @@ from munim.api.schemas import (
     TransactionOut,
     TransactionPage,
 )
-from munim.db import CategoryMap, Import, Transaction
+from munim.ask import LLMError, ask as run_ask
+from munim.ask.context import send_merchants_enabled
+from munim.db import CategoryMap, Import, Question, Transaction
 from munim.importer import ImportFormatError, commit_import, preview_import
 from munim.importer.service import safe_filename
 
@@ -237,3 +243,33 @@ def patch_category_map(
         )
     session.commit()
     return entry
+
+
+# ---------------------------------------------------------------- ask
+
+@router.get("/ask/status", response_model=AskStatus)
+def ask_status(request: Request):
+    llm = request.app.state.llm
+    return AskStatus(ready=llm is not None, model=getattr(llm, "name", None), sends_merchants=send_merchants_enabled())
+
+
+@router.post("/ask", response_model=AskOut)
+def ask_question(body: AskIn, request: Request):
+    llm = request.app.state.llm
+    if llm is None:
+        raise HTTPException(503, "No model is configured. Set ANTHROPIC_API_KEY in .env and restart.")
+    try:
+        result = run_ask(
+            body.question,
+            db_path=request.app.state.db_path,
+            llm=llm,
+            session_factory=request.app.state.session_factory,
+        )
+    except LLMError as exc:
+        raise HTTPException(502, f"The model could not be reached: {exc}") from exc
+    return result.to_dict()
+
+
+@router.get("/ask/history", response_model=list[QuestionOut])
+def ask_history(limit: int = Query(20, ge=1, le=100), session: Session = Depends(get_session)):
+    return session.scalars(select(Question).order_by(Question.id.desc()).limit(limit)).all()

@@ -194,3 +194,21 @@ details.card[open] > summary { margin-bottom: 4px; }
   .brand { padding: 0 12px; align-self: center; }
   .bar-row { grid-template-columns: 90px 1fr 70px; }
 }
+
+/* ask */
+.ask-form { display: grid; gap: 12px; }
+.ask-row { display: flex; gap: 12px; }
+.ask-row input { flex: 1; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+button.chip { border: 1px solid var(--line); padding: 6px 12px; min-height: 32px; font: inherit; font-size: 13px; cursor: pointer; }
+button.chip:hover:not(:disabled) { color: var(--text); background: var(--card); }
+button.chip:disabled { opacity: 0.5; cursor: default; }
+button.chip:focus-visible, button.link:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.headline { font-family: "Space Grotesk", Inter, sans-serif; font-size: 40px; font-weight: 600; margin: 12px 0; }
+.sql { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 12px; white-space: pre-wrap; }
+details summary { cursor: pointer; padding: 6px 0; }
+.history { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+button.link { background: none; border: 0; padding: 4px 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+button.link:hover { color: var(--accent); }
+.fine { font-size: 12px; }
+@media (max-width: 640px) { .ask-row { flex-direction: column; } }

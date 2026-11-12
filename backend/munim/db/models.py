@@ -35,6 +35,21 @@ class Import(Base):
     n_unchanged: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class Question(Base):
+    """Every question asked, the SQL it produced, and how it went. Never holds result rows."""
+
+    __tablename__ = "questions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    asked_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    question: Mapped[str] = mapped_column(Text)
+    sql: Mapped[str | None] = mapped_column(Text)
+    row_count: Mapped[int | None] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(Text)
+    attempts: Mapped[int] = mapped_column(Integer, default=1)
+    model: Mapped[str | None] = mapped_column(String(100))
+
+
 class CategoryMap(Base):
     """Raw category as exported (emoji and all) -> clean name and an optional kind override."""
 

@@ -1,4 +1,4 @@
-"""munim import <file.xlsx> [--dry-run]   |   munim serve"""
+"""munim import <file.xlsx> [--dry-run]  |  munim serve  |  munim ask "..."  |  munim eval"""
 
 from __future__ import annotations
 
@@ -53,6 +53,73 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _open(args: argparse.Namespace):
+    config.load_env()
+    data = Path(args.data_dir).expanduser() if args.data_dir else config.data_dir()
+    data.mkdir(parents=True, exist_ok=True)
+    engine = make_engine(config.db_url(data))
+    init_db(engine)
+    return data / "munim.db", make_session_factory(engine)
+
+
+def _writer():
+    from munim.ask import AnthropicSQLWriter
+
+    llm = AnthropicSQLWriter.from_env()
+    if llm is None:
+        print("No model configured: set ANTHROPIC_API_KEY in .env", file=sys.stderr)
+    return llm
+
+
+def cmd_ask(args: argparse.Namespace) -> int:
+    from munim.ask import LLMError, ask
+
+    db_path, factory = _open(args)
+    llm = _writer()
+    if llm is None:
+        return 2
+    try:
+        res = ask(" ".join(args.question), db_path=db_path, llm=llm, session_factory=factory)
+    except LLMError as exc:
+        print(f"Model error: {exc}", file=sys.stderr)
+        return 1
+    if res.note:
+        print(res.note)
+    if res.error:
+        print(f"Could not answer: {res.error}", file=sys.stderr)
+    elif res.sql is None:
+        pass
+    elif res.headline is not None:
+        print(f"{res.headline:,}")
+    else:
+        print(" | ".join(res.columns))
+        for r in res.rows:
+            print(" | ".join("" if v is None else str(v) for v in r))
+        if res.truncated:
+            print("(more rows than shown)")
+    if args.show_sql and res.sql:
+        print(f"\n{res.sql}")
+    return 1 if res.error else 0
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    from datetime import date
+
+    from munim.ask.evals import run_eval
+
+    db_path, _ = _open(args)
+    llm = _writer()
+    if llm is None:
+        return 2
+    today = date.fromisoformat(args.today) if args.today else None
+    rows = run_eval(db_path, llm, today=today, limit=args.limit)
+    for r in rows:
+        print(f"{'PASS' if r.ok else 'FAIL'}  {r.question}" + (f"\n    {r.detail}" if r.detail else ""))
+    passed = sum(r.ok for r in rows)
+    print(f"\n{passed}/{len(rows)} passed")
+    return 0 if passed == len(rows) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="munim")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -67,6 +134,18 @@ def main(argv: list[str] | None = None) -> int:
     p_srv.add_argument("--host", default="127.0.0.1")
     p_srv.add_argument("--port", type=int, default=8000)
     p_srv.set_defaults(func=cmd_serve)
+
+    p_ask = sub.add_parser("ask", help="ask a question about your spending in plain English")
+    p_ask.add_argument("question", nargs="+")
+    p_ask.add_argument("--show-sql", action="store_true")
+    p_ask.add_argument("--data-dir")
+    p_ask.set_defaults(func=cmd_ask)
+
+    p_eval = sub.add_parser("eval", help="score the model against the golden questions (real API calls)")
+    p_eval.add_argument("--today", help="YYYY-MM-DD; defaults to the latest entry")
+    p_eval.add_argument("--limit", type=int)
+    p_eval.add_argument("--data-dir")
+    p_eval.set_defaults(func=cmd_eval)
 
     args = parser.parse_args(argv)
     return args.func(args)

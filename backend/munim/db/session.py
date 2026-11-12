@@ -4,6 +4,7 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 from munim.db.models import Base
+from munim.db.views import create_views
 
 
 def make_engine(url: str) -> Engine:
@@ -21,6 +22,8 @@ def make_engine(url: str) -> Engine:
 
 def init_db(engine: Engine) -> None:
     Base.metadata.create_all(engine)
+    with engine.begin() as conn:
+        create_views(conn)
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:

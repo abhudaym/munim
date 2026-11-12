@@ -10,10 +10,14 @@ from fastapi.staticfiles import StaticFiles
 from munim import __version__, config
 from munim.api.routes import router
 from munim.db import init_db, make_engine
+from munim.ask import AnthropicSQLWriter, SQLWriter
 from munim.db.session import make_session_factory
 
 
-def create_app(data_dir: Path | None = None) -> FastAPI:
+def create_app(
+    data_dir: Path | None = None, llm: SQLWriter | None = None, load_llm_from_env: bool = True
+) -> FastAPI:
+    config.load_env()
     data = Path(data_dir) if data_dir else config.data_dir()
     data.mkdir(parents=True, exist_ok=True)
 
@@ -28,6 +32,10 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
     app = FastAPI(title="Munim", version=__version__, lifespan=lifespan)
     app.state.data_dir = data
     app.state.session_factory = make_session_factory(engine)
+    app.state.db_path = data / "munim.db"
+    if llm is None and load_llm_from_env:
+        llm = AnthropicSQLWriter.from_env()  # None when no key is configured
+    app.state.llm = llm
     app.include_router(router)
 
     @app.get("/api/health")

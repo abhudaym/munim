@@ -51,6 +51,28 @@ export type ImportRecord = {
 };
 export type CategoryMapRow = { raw_category: string; category: string; kind: Kind | null };
 
+export type AskResult = {
+  question: string;
+  sql: string | null;
+  columns: string[];
+  rows: (string | number | null)[][];
+  truncated: boolean;
+  note: string | null;
+  error: string | null;
+  attempts: number;
+  headline: number | null;
+  model: string | null;
+};
+export type AskStatus = { ready: boolean; model: string | null; sends_merchants: boolean };
+export type AskHistoryItem = {
+  id: number;
+  asked_at: string;
+  question: string;
+  sql: string | null;
+  row_count: number | null;
+  error: string | null;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
   if (!res.ok) {
@@ -74,6 +96,14 @@ const qs = (params: Record<string, string | number | undefined>) => {
 };
 
 export const api = {
+  askStatus: () => request<AskStatus>("/api/ask/status"),
+  askHistory: () => request<AskHistoryItem[]>("/api/ask/history?limit=8"),
+  ask: (question: string) =>
+    request<AskResult>("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    }),
   summary: (p: { group_by: string; from?: string; to?: string; kind?: string }) =>
     request<Summary>(`/api/summary${qs(p)}`),
   transactions: (p: Record<string, string | number | undefined>) =>

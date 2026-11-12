@@ -1,0 +1,22 @@
+[
+ {"q": "How much did I spend in total this month?", "sql": "SELECT sum(amount) FROM v_expenses WHERE txn_date >= '{month_start}'"},
+ {"q": "How much did I spend last month?", "sql": "SELECT sum(amount) FROM v_expenses WHERE txn_date BETWEEN '{last_month_start}' AND '{last_month_end}'"},
+ {"q": "How much did I spend on coffee this year?", "sql": "SELECT sum(amount) FROM v_expenses WHERE subcategory = 'coffee' AND txn_date >= '{year_start}'"},
+ {"q": "How much did I spend on coffee in the last three months?", "sql": "SELECT sum(amount) FROM v_expenses WHERE subcategory = 'coffee' AND txn_date >= '{three_months_ago}'"},
+ {"q": "How many times did I buy coffee this year?", "sql": "SELECT count(*) FROM v_expenses WHERE subcategory = 'coffee' AND txn_date >= '{year_start}'"},
+ {"q": "What are my top 5 spending categories this year?", "sql": "SELECT category, sum(amount) t FROM v_expenses WHERE txn_date >= '{year_start}' GROUP BY category ORDER BY t DESC LIMIT 5"},
+ {"q": "Spend per month over the last six months", "sql": "SELECT month, sum(amount) FROM v_expenses WHERE txn_date >= '{six_months_ago}' GROUP BY month ORDER BY month"},
+ {"q": "What was my single biggest expense this year?", "sql": "SELECT max(amount) FROM v_expenses WHERE txn_date >= '{year_start}'"},
+ {"q": "Which merchant did I spend the most at in the last 12 months?", "sql": "SELECT merchant FROM v_expenses WHERE merchant IS NOT NULL AND txn_date >= '{twelve_months_ago}' GROUP BY merchant ORDER BY sum(amount) DESC LIMIT 1"},
+ {"q": "How much did I spend on food last month?", "sql": "SELECT sum(amount) FROM v_expenses WHERE category = 'Food' AND txn_date BETWEEN '{last_month_start}' AND '{last_month_end}'"},
+ {"q": "What is my average monthly spend over the last six months?", "sql": "SELECT avg(t) FROM (SELECT sum(amount) t FROM v_expenses WHERE txn_date >= '{six_months_ago}' GROUP BY month)"},
+ {"q": "How much income did I receive this year?", "sql": "SELECT sum(amount) FROM v_entries WHERE kind = 'income' AND txn_date >= '{year_start}'"},
+ {"q": "How much did I put into investments this year?", "sql": "SELECT sum(amount) FROM v_entries WHERE kind = 'transfer' AND category = 'Investments' AND txn_date >= '{year_start}'"},
+ {"q": "How much did I spend in the last 30 days?", "sql": "SELECT sum(amount) FROM v_expenses WHERE txn_date >= '{days_30_ago}'"},
+ {"q": "How many expense entries do I have in total?", "sql": "SELECT count(*) FROM v_expenses"},
+ {"q": "What did I spend on each subcategory of food this year?", "sql": "SELECT subcategory, sum(amount) t FROM v_expenses WHERE category = 'Food' AND txn_date >= '{year_start}' GROUP BY subcategory ORDER BY t DESC"},
+ {"q": "Which month had my highest spending in the last twelve months?", "sql": "SELECT month FROM v_expenses WHERE txn_date >= '{twelve_months_ago}' GROUP BY month ORDER BY sum(amount) DESC LIMIT 1"},
+ {"q": "How much did I spend on weekends this year?", "sql": "SELECT sum(amount) FROM v_expenses WHERE txn_date >= '{year_start}' AND strftime('%w', txn_date) IN ('0','6')"},
+ {"q": "What was my total spend today?", "sql": "SELECT coalesce(sum(amount), 0) FROM v_expenses WHERE txn_date = '{today}'"},
+ {"q": "What's my bank balance?", "sql": null}
+]

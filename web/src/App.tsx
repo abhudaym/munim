@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import Overview from "./pages/Overview";
 import Transactions from "./pages/Transactions";
 import Import from "./pages/Import";
+import Ask from "./pages/Ask";
 
 const PAGES = [
   { id: "overview", label: "Overview" },
+  { id: "ask", label: "Ask" },
   { id: "transactions", label: "Transactions" },
   { id: "import", label: "Import" },
 ] as const;
@@ -35,6 +37,7 @@ export default function App() {
       </nav>
       <main className="main">
         {page === "overview" && <Overview />}
+        {page === "ask" && <Ask />}
         {page === "transactions" && <Transactions />}
         {page === "import" && <Import />}
       </main>

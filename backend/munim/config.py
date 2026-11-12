@@ -8,6 +8,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def load_env() -> None:
+    """Read REPO_ROOT/.env into the environment. Real environment variables win."""
+    path = REPO_ROOT / ".env"
+    if not path.is_file():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+
+
 def data_dir() -> Path:
     env = os.environ.get("MUNIM_DATA_DIR")
     path = Path(env).expanduser() if env else REPO_ROOT / "data"

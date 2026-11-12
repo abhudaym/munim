@@ -94,6 +94,7 @@ class AskOut(BaseModel):
     charts: list[str] = ["table"]
     value_col: int | None = None
     time: bool = False
+    plot: dict | None = None
     rolling: bool = False
 
 
@@ -142,6 +143,7 @@ class TileOut(BaseModel):
     charts: list[str]
     value_col: int | None
     time: bool
+    plot: dict | None = None
     columns: list[str]
     rows: list[list]
     truncated: bool

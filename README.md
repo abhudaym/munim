@@ -127,3 +127,8 @@ MUNIM_SAMPLE_XLSX=/path/to/your/export.xlsx pytest   # also runs the check again
 ```
 
 Tests use generated files. Never commit a real export.
+
+
+### Trends with several lines
+
+A result shaped like month × name × amount (for example food and social life by month), or a month column followed by several amount columns, is drawn as one line per series, up to six, with a legend and a readout of every series on hover. Long all-time monthly results (up to 120 months) draw as a line instead of falling back to a table.

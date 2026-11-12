@@ -165,3 +165,33 @@ def test_a_tile_that_breaks_later_reports_instead_of_failing_the_page(api, sessi
     pin(api, title="still fine")
     first, second = api.get("/api/dashboard").json()
     assert first["error"] and first["rows"] == [] and second["rows"] == [[1440.0]]
+
+
+def test_long_format_months_by_category_is_a_multi_line_chart():
+    rows = [[m, c, v] for m, vals in {"2026-01": (100, 50), "2026-02": (120, 0), "2026-03": (90, 70)}.items()
+            for c, v in zip(("Food", "Social Life"), vals) if v]
+    choice = choose_chart(["month", "category", "spent"], rows)
+    assert choice.chart == "line" and choice.charts == ["line", "table"] and choice.time
+    assert choice.plot["labels"] == ["2026-01", "2026-02", "2026-03"]
+    by_name = {s["name"]: s["values"] for s in choice.plot["series"]}
+    assert by_name["Food"] == [100, 120, 90]
+    assert by_name["Social Life"] == [50, 0, 70]  # a missing month is zero
+
+
+def test_wide_format_columns_become_series():
+    rows = [["2026-01", 1, 2], ["2026-02", 3, 4], ["2026-03", 5, 6]]
+    choice = choose_chart(["month", "food", "fuel"], rows)
+    assert choice.chart == "line" and [s["name"] for s in choice.plot["series"]] == ["food", "fuel"]
+
+
+def test_many_months_single_series_is_a_line_not_a_table():
+    rows = [[f"{2020 + i // 12}-{i % 12 + 1:02d}", i + 1] for i in range(60)]
+    choice = choose_chart(["month", "spent"], rows)
+    assert choice.chart == "line" and choice.plot is None
+
+
+def test_too_many_series_or_repeated_pairs_stay_a_table():
+    many = [[m, f"c{k}", 1] for m in ("2026-01", "2026-02") for k in range(8)]
+    assert choose_chart(["month", "category", "spent"], many).chart == "table"
+    dup = [["2026-01", "Food", 1], ["2026-01", "Food", 2], ["2026-02", "Food", 3]]
+    assert choose_chart(["month", "category", "spent"], dup).chart == "table"

@@ -1,3 +1,4 @@
+import type { Plot } from "./components/Chart";
 export type Kind = "expense" | "income" | "transfer";
 
 export type Txn = {
@@ -67,6 +68,7 @@ export type AskResult = {
   charts: string[];
   value_col: number | null;
   time: boolean;
+  plot: Plot | null;
   rolling: boolean;
 };
 export type Tile = {
@@ -79,6 +81,7 @@ export type Tile = {
   charts: string[];
   value_col: number | null;
   time: boolean;
+  plot: Plot | null;
   columns: string[];
   rows: (string | number | null)[][];
   truncated: boolean;

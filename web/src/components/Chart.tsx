@@ -9,7 +9,9 @@ export type ChartData = {
   chart: string;
   value_col: number | null;
   time: boolean;
+  plot?: Plot | null;
 };
+export type Plot = { labels: string[]; column: string; series: { name: string; values: number[] }[] };
 
 const MONEY = /(amount|total|spent|spend|sum|avg|average|income|expense|max|min|cost)/i;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -103,8 +105,74 @@ function TimeChart({ points, column, line }: { points: { label: Cell; value: num
   );
 }
 
+/** Several lines over time, one colour per series in fixed order, one shared y-scale. */
+function MultiLine({ plot }: { plot: Plot }) {
+  const n = plot.labels.length;
+  const [active, setActive] = useState(n - 1);
+  const top = Math.max(...plot.series.flatMap((s) => s.values), 1);
+  const i = Math.min(active, n - 1);
+  const step = Math.ceil(n / 8);
+  const x = (k: number) => ((k + 0.5) / n) * 100;
+  const y = (v: number) => 100 - (v / top) * 100;
+
+  return (
+    <div className="tchart">
+      <div className="legend">
+        {plot.series.map((s, k) => (
+          <span key={s.name}>
+            <i className="swatch" style={{ background: `var(--s${k + 1})` }} /> {s.name}
+          </span>
+        ))}
+      </div>
+      <div className="readout" aria-live="polite">
+        <span className="muted">{fmtLabel(plot.labels[i])}</span>{" "}
+        {plot.series.map((s) => (
+          <span key={s.name} className="rv">
+            {s.name} <strong>{fmtValue(plot.column, s.values[i])}</strong>
+          </span>
+        ))}
+      </div>
+      <div className="plot">
+        <span className="ymax muted" aria-hidden="true">{fmtValue(plot.column, top)}</span>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {plot.series.map((s, k) => (
+            <polyline
+              key={s.name}
+              className="ml"
+              style={{ stroke: `var(--s${k + 1})` }}
+              points={s.values.map((v, j) => `${x(j)},${y(v)}`).join(" ")}
+              fill="none"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+        {plot.labels.map((label, j) => (
+          <button
+            type="button"
+            key={j}
+            className={`slot ${j === i ? "on" : ""}`}
+            aria-label={`${fmtLabel(label)}: ${plot.series.map((s) => `${s.name} ${fmtValue(plot.column, s.values[j])}`).join(", ")}`}
+            onMouseEnter={() => setActive(j)}
+            onFocus={() => setActive(j)}
+          >
+            {plot.series.map((s, k) => (
+              <span key={s.name} className="dot" style={{ bottom: `${(s.values[j] / top) * 100}%`, background: `var(--s${k + 1})` }} />
+            ))}
+          </button>
+        ))}
+      </div>
+      <div className="xaxis" aria-hidden="true">
+        {plot.labels.map((label, j) => (
+          <span key={j}>{j % step === 0 || j === n - 1 ? shortLabel(label) : ""}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Chart({ data, kind }: { data: ChartData; kind?: string }) {
   const chart = kind ?? data.chart;
+  if (data.plot && chart === "line" && data.rows.length > 0) return <MultiLine plot={data.plot} />;
   const v = data.value_col;
   if (data.rows.length === 0 || chart === "table" || v === null) return <ResultTable columns={data.columns} rows={data.rows} />;
 

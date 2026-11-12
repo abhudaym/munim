@@ -35,6 +35,7 @@ class AskResult:
     charts: list[str] = field(default_factory=lambda: ["table"])
     value_col: int | None = None
     time: bool = False
+    plot: dict | None = None
     rolling: bool = False  # the dates are relative to today, so a pinned tile can keep moving
 
     def to_dict(self) -> dict:
@@ -86,6 +87,7 @@ def ask(
             out.headline = _headline(result)
             choice = choose_chart(result.columns, result.rows)
             out.chart, out.charts, out.value_col, out.time = choice.chart, choice.charts, choice.value_col, choice.time
+            out.plot = choice.plot
             out.rolling = is_rolling(to_template(out.sql, today))
             break
     except LLMError as exc:

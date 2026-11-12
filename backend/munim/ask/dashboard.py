@@ -51,7 +51,7 @@ def render(template: str, today: date) -> str:
 
 def run_tile(conn: sqlite3.Connection, template: str, chart: str, today: date) -> dict:
     """Run one tile through the same guard and read-only runner as a fresh question."""
-    out = {"columns": [], "rows": [], "truncated": False, "error": None, "chart": chart, "charts": ["table"], "value_col": None, "time": False}
+    out = {"columns": [], "rows": [], "truncated": False, "error": None, "chart": chart, "charts": ["table"], "value_col": None, "time": False, "plot": None}
     try:
         result = run_query(conn, check_sql(render(template, today)))
     except (GuardError, QueryError) as exc:
@@ -65,6 +65,7 @@ def run_tile(conn: sqlite3.Connection, template: str, chart: str, today: date) -
         charts=choice.charts,
         value_col=choice.value_col,
         time=choice.time,
+        plot=choice.plot,
     )
     if chart not in choice.charts:  # the data changed shape since it was pinned
         out["chart"] = choice.chart

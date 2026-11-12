@@ -113,9 +113,9 @@ def _examples(t: dict[str, str], tags: list[str], has_odometer: bool) -> list[st
             f"AND txn_date >= '{t['days_30_ago']}' AND txn_date <= '{t['today']}'",
         )
         add(
-            f"How much did I spend on {tag} in the last six months?",
+            f"How much did I spend on {tag} in the last twelve months?",
             f"SELECT SUM(amount) AS spent FROM v_expenses WHERE subcategory = '{tag}' "
-            f"AND txn_date >= '{t['six_months_ago']}' AND txn_date <= '{t['today']}'",
+            f"AND txn_date >= '{t['twelve_months_ago']}' AND txn_date <= '{t['today']}'",
         )
     add(
         "Spend per month over the last three months",

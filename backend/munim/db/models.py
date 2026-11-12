@@ -85,6 +85,8 @@ class Transaction(Base):
     merchant: Mapped[str | None] = mapped_column(String(200))
     note_raw: Mapped[str | None] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)
+    # Read out of the description at import ("15983 kms"); NULL when there is none.
+    odometer_km: Mapped[int | None] = mapped_column(Integer)
     content_hash: Mapped[str] = mapped_column(String(40))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
     first_import_id: Mapped[int] = mapped_column(ForeignKey("imports.id"))

@@ -20,6 +20,7 @@ class TransactionOut(BaseModel):
     merchant: str | None
     note_raw: str | None
     description: str | None
+    odometer_km: int | None = None
     deleted_at: datetime | None
 
 

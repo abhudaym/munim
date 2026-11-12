@@ -30,6 +30,13 @@ delivery) when they are listed.
 - Totals use SUM(amount). Name money columns spent, total or amount, and counts n.
 - Return only what was asked: one number for "how much" or "how many"; a short ranked list (10 rows unless \
 told otherwise) for "top" or "biggest"; a month column, ordered by month, for per-month breakdowns.
+- Distance driven: odometer_km is a cumulative reading, so never SUM it. Distance over a period is \
+MAX(odometer_km) - MIN(odometer_km) across every row in that period where odometer_km IS NOT NULL, whatever \
+its category or merchant (a service entry can carry a reading too), so compute it in its own subquery \
+when the question also filters on fuel; name it km_driven. Distance per fill-up is odometer_km minus the previous reading (LAG ... OVER (ORDER BY txn_ts)). \
+If the readings start later or end earlier than the period asked for, say in note which dates the distance \
+really covers. Cost per km divides only the spend between the first and last reading by that distance.
+- A question with two parts (a total and a distance) is still one query: return them as two columns.
 - One statement. No comments. SQLite syntax only.
 - If the question cannot be answered from these views (balances, net worth, market value of investments, \
 dates outside the data), set sql to an empty string and explain in note.

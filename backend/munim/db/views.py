@@ -20,7 +20,8 @@ COLUMNS: list[tuple[str, str]] = [
     ("subcategory", "lowercase tag from the note prefix, e.g. 'coffee', 'eatout', 'delivery'; often NULL"),
     ("merchant", "lowercase note text without the prefix, e.g. 'blue tokai'; NULL when there was no note"),
     ("note", "the note exactly as typed"),
-    ("description", "free text, e.g. fuel type and odometer; often NULL"),
+    ("description", "free text, e.g. fuel type; often NULL. Never parse numbers out of it"),
+    ("odometer_km", "the car's odometer reading typed on some car entries (fuel, service); cumulative; usually NULL"),
 ]
 
 VIEW_NAMES = ("v_expenses", "v_entries")
@@ -29,7 +30,7 @@ _SELECT = """SELECT txn_ts,
        date(txn_ts) AS txn_date,
        strftime('%Y-%m', txn_ts) AS month,
        kind, amount, category, subcategory, merchant,
-       note_raw AS note, description
+       note_raw AS note, description, odometer_km
 FROM transactions
 WHERE deleted_at IS NULL"""
 

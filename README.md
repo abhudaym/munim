@@ -47,6 +47,13 @@ The importer splits a note like `Coffee: blue tokai` into a tag (`coffee`) and a
 breakdown by month, tag or merchant. Entries with no `Prefix:` show up under "Untagged".
 `/api/summary` takes the same filters as `/api/transactions`.
 
+## Odometer readings
+
+If a description holds a reading such as `15983 kms`, the importer stores it in `odometer_km`
+(databases from before this was added are filled in on the next start). Questions can then ask
+for distance driven, which is the last reading minus the first, or cost per km. A description
+needs at least three digits before `km` to count, so "5 km away" is ignored.
+
 ## Asking questions
 
 `munim ask "how much did I spend on coffee in the last three months?"`, or use the **Ask** page.

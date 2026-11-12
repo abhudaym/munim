@@ -24,7 +24,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from munim.db.models import CategoryMap, Import, Transaction, utcnow
-from munim.importer.normalise import SEED_KINDS, clean_category, derive_kind
+from munim.importer.normalise import SEED_KINDS, clean_category, derive_kind, extract_odometer
 from munim.importer.parser import ParsedRow, parse_workbook
 
 SAMPLE_LIMIT = 25
@@ -183,6 +183,7 @@ def _fields(row: ParsedRow, cmap: dict[str, CategoryMap]) -> dict:
         "merchant": row.merchant,
         "note_raw": row.note_raw,
         "description": row.description,
+        "odometer_km": extract_odometer(row.description),
         "content_hash": row.content_hash,
     }
 

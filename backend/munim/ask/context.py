@@ -69,6 +69,13 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         "Categories as 'name (kind, entries)':",
         "  " + ", ".join(f"{c} ({k}, {cnt})" for c, k, cnt in categories),
     ]
+    odo_n, odo_first, odo_last = q(
+        "SELECT count(*), min(txn_date), max(txn_date) FROM v_entries WHERE odometer_km IS NOT NULL"
+    )[0]
+    if odo_n:
+        lines += ["", f"Odometer readings: {odo_n} entries, from {odo_first} to {odo_last}. None outside those dates."]
+    else:
+        lines += ["", "Odometer readings: none recorded."]
     if subs:
         lines += ["", "Subcategories as 'name (entries)':", "  " + ", ".join(f"{s} ({c})" for s, c in subs)]
     if send_merchants:

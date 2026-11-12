@@ -18,5 +18,7 @@
  {"q": "Which month had my highest spending in the last twelve months?", "sql": "SELECT month FROM v_expenses WHERE txn_date >= '{twelve_months_ago}' GROUP BY month ORDER BY sum(amount) DESC LIMIT 1"},
  {"q": "How much did I spend on weekends this year?", "sql": "SELECT sum(amount) FROM v_expenses WHERE txn_date >= '{year_start}' AND strftime('%w', txn_date) IN ('0','6')"},
  {"q": "What was my total spend today?", "sql": "SELECT coalesce(sum(amount), 0) FROM v_expenses WHERE txn_date = '{today}'"},
+ {"q": "How many kilometres did my car run this year?", "sql": "SELECT max(odometer_km) - min(odometer_km) FROM v_expenses WHERE odometer_km IS NOT NULL AND txn_date >= '{year_start}'"},
+ {"q": "How much did I spend on petrol this year and how many km did the car run?", "sql": "SELECT (SELECT sum(amount) FROM v_expenses WHERE merchant LIKE '%petrol%' AND txn_date >= '{year_start}'), (SELECT max(odometer_km) - min(odometer_km) FROM v_expenses WHERE odometer_km IS NOT NULL AND txn_date >= '{year_start}')"},
  {"q": "What's my bank balance?", "sql": null}
 ]

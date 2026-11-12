@@ -36,6 +36,20 @@ def split_note(note: str | None) -> tuple[str | None, str | None]:
     return None, text.lower() or None
 
 
+_ODOMETER = re.compile(r"(?<![\w.,])(\d{1,3}(?:,\d{2,3})+|\d{3,7})\s*(?:kms?|kilomet(?:er|re)s?)\b", re.I)
+
+
+def extract_odometer(description: str | None) -> int | None:
+    """'Xp95\n15983 kms' -> 15983. The car's odometer reading typed into a fuel entry.
+
+    Needs at least three digits before km/kms, so '5 km away' is not taken for a reading.
+    """
+    if not description:
+        return None
+    match = _ODOMETER.search(description)
+    return int(match.group(1).replace(",", "")) if match else None
+
+
 def content_hash(
     amount: float,
     raw_category: str,

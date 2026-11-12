@@ -10,6 +10,7 @@ export type Txn = {
   merchant: string | null;
   note_raw: string | null;
   description: string | null;
+  odometer_km: number | null;
   deleted_at: string | null;
 };
 export type TxnPage = { total: number; amount_total: number; limit: number; offset: number; items: Txn[] };

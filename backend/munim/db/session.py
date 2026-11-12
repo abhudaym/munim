@@ -20,9 +20,23 @@ def make_engine(url: str) -> Engine:
     return engine
 
 
+def _migrate(conn) -> None:
+    """Small additive changes for databases made by an older version. No Alembic yet."""
+    from munim.importer.normalise import extract_odometer
+
+    columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(transactions)")}
+    if "odometer_km" not in columns:
+        conn.exec_driver_sql("ALTER TABLE transactions ADD COLUMN odometer_km INTEGER")
+        rows = conn.exec_driver_sql("SELECT id, description FROM transactions WHERE description IS NOT NULL")
+        found = [(km, row_id) for row_id, text in rows if (km := extract_odometer(text)) is not None]
+        for km, row_id in found:
+            conn.exec_driver_sql("UPDATE transactions SET odometer_km = ? WHERE id = ?", (km, row_id))
+
+
 def init_db(engine: Engine) -> None:
     Base.metadata.create_all(engine)
     with engine.begin() as conn:
+        _migrate(conn)
         create_views(conn)
 
 

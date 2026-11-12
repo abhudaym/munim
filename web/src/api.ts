@@ -213,3 +213,44 @@ export const worth = {
     request<Snapshot>(`/api/accounts/${id}/snapshots`, send("POST", body)),
   deleteSnapshot: (id: number) => gone(`/api/snapshots/${id}`),
 };
+
+export type Bill = {
+  id: number;
+  statement_date: string;
+  amount: number;
+  min_due: number | null;
+  due_date: string | null;
+  paid_on: string | null;
+  status: "paid" | "overdue" | "due";
+  days_to_due: number | null;
+};
+export type Card = {
+  id: number;
+  name: string;
+  statement_day: number;
+  due_days: number | null;
+  archived: boolean;
+  next_statement: string;
+  days_to_statement: number;
+  last_statement: string;
+  suggested_due: string | null;
+  last_bill: Bill | null;
+  unpaid_total: number;
+  unpaid_count: number;
+  next_due: string | null;
+  bills_count: number;
+};
+export const cards = {
+  list: () => request<Card[]>("/api/cards"),
+  add: (body: { name: string; statement_day: number; due_days: number | null }) =>
+    request<Card>("/api/cards", send("POST", body)),
+  patch: (id: number, body: { name?: string; statement_day?: number; due_days?: number | null; archived?: boolean }) =>
+    request<Card>(`/api/cards/${id}`, send("PATCH", body)),
+  remove: (id: number) => gone(`/api/cards/${id}`),
+  bills: (id: number) => request<Bill[]>(`/api/cards/${id}/bills`),
+  addBill: (id: number, body: { statement_date: string; amount: number; min_due?: number | null; due_date?: string | null }) =>
+    request<Bill>(`/api/cards/${id}/bills`, send("POST", body)),
+  patchBill: (id: number, body: { paid?: boolean; paid_on?: string; amount?: number; min_due?: number | null; due_date?: string | null }) =>
+    request<Bill>(`/api/bills/${id}`, send("PATCH", body)),
+  removeBill: (id: number) => gone(`/api/bills/${id}`),
+};

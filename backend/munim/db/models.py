@@ -134,3 +134,31 @@ class Snapshot(Base):
     value: Mapped[float] = mapped_column(Float)  # current worth
     invested: Mapped[float | None] = mapped_column(Float)  # amount put in, when known
     note: Mapped[str | None] = mapped_column(String(200))
+
+
+class Card(Base):
+    """A credit card, tracked by hand: which day its bill is generated and how long you have to pay it."""
+
+    __tablename__ = "cards"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    statement_day: Mapped[int] = mapped_column(Integer)  # day of month the bill is generated, 1-31
+    due_days: Mapped[int | None] = mapped_column(Integer)  # days from statement to due date, when it is fixed
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class Bill(Base):
+    """One generated statement for a card. The amount is what the bill said, typed in."""
+
+    __tablename__ = "bills"
+    __table_args__ = (UniqueConstraint("card_id", "statement_date", name="uq_bill_statement"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    card_id: Mapped[int] = mapped_column(ForeignKey("cards.id", ondelete="CASCADE"), index=True)
+    statement_date: Mapped[date] = mapped_column(Date)
+    amount: Mapped[float] = mapped_column(Float)  # total amount due
+    min_due: Mapped[float | None] = mapped_column(Float)
+    due_date: Mapped[date | None] = mapped_column(Date)
+    paid_on: Mapped[date | None] = mapped_column(Date)

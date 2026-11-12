@@ -148,3 +148,16 @@ The **Net worth** page tracks where your money sits: bank, Dhan, Upstox, mutual 
 Nothing is fetched from brokers. Dhan and Upstox need a fresh login token every day, so typing a monthly number is less work. A holdings CSV import can fill these entries later.
 
 The top bar's `ask >` box runs a question from any page and opens the answer in Ask.
+
+
+## Cards
+
+The **Cards** page tracks each credit card's bills by hand. It is separate from your expenses: nothing here reads or changes Money Manager data.
+
+- Add a card with the day of the month its bill is generated, and (optionally) how many days you get to pay it.
+- **Add bill** records a statement: the date it was generated, the total due, the minimum due and the due date. The date and due date are pre-filled from the card's schedule.
+- Each card shows when the next bill is generated, the last bill's amount (what you spent in that cycle), whether it is paid, due soon or overdue, and a bar per bill.
+- The top row shows total unpaid, the nearest due date and the next bill to be generated across all cards.
+- A 31st statement day falls on the last day of shorter months.
+
+Reading the amounts from Gmail is a later step.

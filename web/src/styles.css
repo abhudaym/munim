@@ -278,3 +278,8 @@ button.link:hover { color: var(--accent); }
 .balance { display: flex; flex-wrap: wrap; gap: 8px 32px; align-items: center; justify-content: space-between; }
 .balance .big { margin-top: 0; }
 .tiles .balance-tile { background: #121613; }
+
+/* cards */
+.kv { display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; }
+.bill-row { display: grid; grid-template-columns: 110px 100px 1fr auto; gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px solid #1c211e; }
+@media (max-width: 720px) { .bill-row { grid-template-columns: 1fr 1fr; } }

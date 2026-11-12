@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { api, ImportRecord } from "./api";
 import Overview from "./pages/Overview";
 import NetWorth from "./pages/NetWorth";
+import Cards from "./pages/Cards";
 import Transactions from "./pages/Transactions";
 import Import from "./pages/Import";
 import Ask from "./pages/Ask";
@@ -11,6 +12,7 @@ import { fmtDate } from "./format";
 const PAGES = [
   { id: "overview", label: "Overview" },
   { id: "networth", label: "Net worth" },
+  { id: "cards", label: "Cards" },
   { id: "dashboard", label: "Dashboard" },
   { id: "ask", label: "Ask" },
   { id: "transactions", label: "Transactions" },
@@ -75,6 +77,7 @@ export default function App() {
       <main className="main">
         {page === "overview" && <Overview />}
         {page === "networth" && <NetWorth />}
+        {page === "cards" && <Cards />}
         {page === "dashboard" && <Dashboard />}
         {page === "ask" && <Ask seed={seed} />}
         {page === "transactions" && <Transactions />}

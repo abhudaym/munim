@@ -19,11 +19,50 @@ const MONTH = /^\d{4}-\d{2}$/;
 export const isMoney = (column: string) => MONEY.test(column);
 export const fmtValue = (column: string, v: number) => (isMoney(column) ? inr(v) : v.toLocaleString("en-IN"));
 const fmtLabel = (v: Cell) => (v === null ? "none" : typeof v === "string" && MONTH.test(v) ? monthLabel(v) : String(v));
-const shortLabel = (v: Cell) => {
+
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+/** Axis label for a time bucket: month and 2-digit year, so the year is always readable. */
+const axisLabel = (v: Cell) => {
   if (typeof v !== "string") return String(v ?? "");
-  if (MONTH.test(v)) return monthLabel(v).split(" ")[0];
-  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v.slice(8) : v;
+  if (MONTH.test(v)) return `${MON[Number(v.slice(5, 7)) - 1]} '${v.slice(2, 4)}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return `${Number(v.slice(8))} ${MON[Number(v.slice(5, 7)) - 1]} '${v.slice(2, 4)}`;
+  return v;
 };
+
+/** A round upper bound and evenly spaced ticks, so the y axis reads in clean steps. */
+function niceScale(top: number) {
+  const target = Math.max(top, 1) / 4;
+  const mag = 10 ** Math.floor(Math.log10(target));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((c) => c >= target) ?? 10 * mag;
+  const max = step * Math.ceil(Math.max(top, 1) / step);
+  return { max, ticks: Array.from({ length: Math.round(max / step) + 1 }, (_, i) => i * step) };
+}
+
+/** Compact amounts for axis ticks: 12.5k, 1.2L (lakh), 3Cr. */
+function fmtTick(column: string, v: number) {
+  const trim = (n: number) => String(Math.round(n * 10) / 10);
+  const a = Math.abs(v);
+  const body = a >= 1e7 ? `${trim(v / 1e7)}Cr` : a >= 1e5 ? `${trim(v / 1e5)}L` : a >= 1e3 ? `${trim(v / 1e3)}k` : String(v);
+  return isMoney(column) ? `₹${body}` : body;
+}
+
+function YAxis({ column, ticks, max }: { column: string; ticks: number[]; max: number }) {
+  return (
+    <div className="yaxis" aria-hidden="true">
+      {ticks.map((t) => (
+        <span key={t} style={{ bottom: `${(t / max) * 100}%` }}>{fmtTick(column, t)}</span>
+      ))}
+    </div>
+  );
+}
+
+function Grid({ ticks, max }: { ticks: number[]; max: number }) {
+  return (
+    <>
+      {ticks.map((t) => (t > 0 ? <span key={t} className="gridline" style={{ bottom: `${(t / max) * 100}%` }} aria-hidden="true" /> : null))}
+    </>
+  );
+}
 
 function cell(column: string, value: Cell) {
   if (value === null) return <span className="muted">–</span>;
@@ -62,9 +101,9 @@ export function ResultTable({ columns, rows }: { columns: string[]; rows: Cell[]
 /** Time series: columns or a line, with one readout that follows hover and keyboard focus. */
 function TimeChart({ points, column, line }: { points: { label: Cell; value: number }[]; column: string; line: boolean }) {
   const [active, setActive] = useState(points.length - 1);
-  const top = Math.max(...points.map((p) => p.value), 1);
+  const { max: top, ticks } = niceScale(Math.max(...points.map((p) => p.value), 1));
   const at = points[Math.min(active, points.length - 1)];
-  const step = Math.ceil(points.length / 8); // thin the axis labels when there are many
+  const step = Math.ceil(points.length / 7); // thin the axis labels when there are many
   const x = (i: number) => ((i + 0.5) / points.length) * 100;
   const y = (v: number) => 100 - (v / top) * 100;
 
@@ -73,7 +112,10 @@ function TimeChart({ points, column, line }: { points: { label: Cell; value: num
       <div className="readout" aria-live="polite">
         <span className="muted">{fmtLabel(at.label)}</span> <strong>{fmtValue(column, at.value)}</strong>
       </div>
+      <div className="chartgrid">
+      <YAxis column={column} ticks={ticks} max={top} />
       <div className="plot">
+        <Grid ticks={ticks} max={top} />
         {line && (
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             <polyline points={points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ")} fill="none" vectorEffect="non-scaling-stroke" />
@@ -98,8 +140,9 @@ function TimeChart({ points, column, line }: { points: { label: Cell; value: num
       </div>
       <div className="xaxis" aria-hidden="true">
         {points.map((p, i) => (
-          <span key={i}>{i % step === 0 || i === points.length - 1 ? shortLabel(p.label) : ""}</span>
+          <span key={i}>{i % step === 0 ? axisLabel(p.label) : ""}</span>
         ))}
+      </div>
       </div>
     </div>
   );
@@ -109,9 +152,9 @@ function TimeChart({ points, column, line }: { points: { label: Cell; value: num
 function MultiLine({ plot }: { plot: Plot }) {
   const n = plot.labels.length;
   const [active, setActive] = useState(n - 1);
-  const top = Math.max(...plot.series.flatMap((s) => s.values), 1);
+  const { max: top, ticks } = niceScale(Math.max(...plot.series.flatMap((s) => s.values), 1));
   const i = Math.min(active, n - 1);
-  const step = Math.ceil(n / 8);
+  const step = Math.ceil(n / 7);
   const x = (k: number) => ((k + 0.5) / n) * 100;
   const y = (v: number) => 100 - (v / top) * 100;
 
@@ -132,8 +175,10 @@ function MultiLine({ plot }: { plot: Plot }) {
           </span>
         ))}
       </div>
+      <div className="chartgrid">
+      <YAxis column={plot.column} ticks={ticks} max={top} />
       <div className="plot">
-        <span className="ymax muted" aria-hidden="true">{fmtValue(plot.column, top)}</span>
+        <Grid ticks={ticks} max={top} />
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {plot.series.map((s, k) => (
             <polyline
@@ -163,8 +208,9 @@ function MultiLine({ plot }: { plot: Plot }) {
       </div>
       <div className="xaxis" aria-hidden="true">
         {plot.labels.map((label, j) => (
-          <span key={j}>{j % step === 0 || j === n - 1 ? shortLabel(label) : ""}</span>
+          <span key={j}>{j % step === 0 ? axisLabel(label) : ""}</span>
         ))}
+      </div>
       </div>
     </div>
   );

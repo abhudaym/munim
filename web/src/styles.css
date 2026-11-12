@@ -235,6 +235,11 @@ button.link:hover { color: var(--accent); }
 /* charts */
 .bar-row.three { grid-template-columns: minmax(90px, 160px) 1fr minmax(90px, auto); }
 .tchart { display: grid; gap: 8px; }
+.chartgrid { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; }
+.yaxis { position: relative; min-width: 44px; height: 200px; font-size: 11px; color: var(--muted); }
+.yaxis span { position: absolute; right: 0; transform: translateY(50%); white-space: nowrap; }
+.gridline { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid var(--line); opacity: 0.6; pointer-events: none; }
+.chartgrid .xaxis { grid-column: 2; }
 .readout { min-height: 24px; }
 .plot { position: relative; display: flex; gap: 2px; height: 200px; border-bottom: 1px solid var(--line); }
 .plot svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -246,13 +251,12 @@ button.link:hover { color: var(--accent); }
 .dot { position: absolute; left: 50%; width: 8px; height: 8px; margin: 0 0 -5px -5px; border-radius: 50%; background: var(--accent); border: 2px solid var(--card); opacity: 0; }
 .slot.on .dot { opacity: 1; }
 .plot polyline.ml { stroke-width: 2; }
-.ymax { position: absolute; top: 0; left: 4px; font-size: 11px; pointer-events: none; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
 .rv { margin-left: 12px; white-space: nowrap; }
 .slot.on .dot { opacity: 1; }
 .xaxis { display: flex; gap: 2px; font-size: 12px; color: var(--muted); }
-.xaxis span { flex: 1; min-width: 0; text-align: center; white-space: nowrap; overflow: hidden; }
+.xaxis span { flex: 1; min-width: 0; text-align: center; white-space: nowrap; overflow: visible; }
 
 /* dashboard */
 .dash { display: grid; gap: 16px; grid-template-columns: repeat(6, minmax(0, 1fr)); }

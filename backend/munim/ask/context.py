@@ -34,6 +34,10 @@ def date_tokens(today: date) -> dict[str, str]:
         "three_months_ago": months_ago(today, 3).isoformat(),
         "six_months_ago": months_ago(today, 6).isoformat(),
         "twelve_months_ago": months_ago(today, 12).isoformat(),
+        # whole calendar months, ending at last_month_end
+        "three_full_months_start": months_ago(first, 3).isoformat(),
+        "six_full_months_start": months_ago(first, 6).isoformat(),
+        "twelve_full_months_start": months_ago(first, 12).isoformat(),
     }
 
 

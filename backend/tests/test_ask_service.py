@@ -144,6 +144,8 @@ def test_date_tokens_handle_month_ends_and_january():
     assert t["three_months_ago"] == "2025-12-31" and t["six_months_ago"] == "2025-09-30"
     jan = date_tokens(date(2026, 1, 15))
     assert jan["last_month_start"] == "2025-12-01" and jan["last_month_end"] == "2025-12-31"
+    assert t["three_full_months_start"] == "2025-12-01" and t["six_full_months_start"] == "2025-09-01"
+    assert jan["twelve_full_months_start"] == "2025-01-01"
     assert jan["year_start"] == "2026-01-01" and jan["twelve_months_ago"] == "2025-01-15"
 
 

@@ -9,6 +9,7 @@ import json
 from dataclasses import dataclass
 from datetime import date
 from importlib import resources
+from itertools import permutations
 from pathlib import Path
 
 from munim.ask.context import date_tokens
@@ -32,11 +33,25 @@ def _norm(value):
     return round(value, 2) if isinstance(value, float) else value
 
 
+def _rows_key(rows: list[list]) -> list[str]:
+    return sorted(repr([_norm(v) for v in r]) for r in rows)
+
+
 def same_answer(got: list[list], want: list[list]) -> bool:
-    """Same cells, ignoring column names and row order, to the paisa."""
-    a = sorted(map(repr, ([_norm(v) for v in r] for r in got)))
-    b = sorted(map(repr, ([_norm(v) for v in r] for r in want)))
-    return a == b
+    """Same cells to the paisa, ignoring column names and row order.
+
+    Extra columns are fine: asked "which merchant", an answer of (merchant, total) is right.
+    So this passes when some choice of the answer's columns equals the reference.
+    """
+    if len(got) != len(want):
+        return False
+    if not want:
+        return True
+    k, m = len(want[0]), len(got[0])
+    if m < k:
+        return False
+    target = _rows_key(want)
+    return any(_rows_key([[r[i] for i in cols] for r in got]) == target for cols in permutations(range(m), k))
 
 
 def latest_data_date(db_path: Path) -> date:

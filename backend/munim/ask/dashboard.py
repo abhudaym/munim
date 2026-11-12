@@ -23,6 +23,9 @@ _PRIORITY = (
     "six_months_ago",
     "twelve_months_ago",
     "days_30_ago",
+    "three_full_months_start",
+    "six_full_months_start",
+    "twelve_full_months_start",
 )
 _LITERAL = re.compile(r"'(\d{4}-\d{2}-\d{2})'")
 _PLACEHOLDER = re.compile(r"'\{(\w+)\}'")

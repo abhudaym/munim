@@ -47,3 +47,13 @@ def test_defaults_today_to_latest_entry(db_path):
 def test_comparison_ignores_order_and_float_noise():
     assert same_answer([["a", 1.001], ["b", 2.0]], [["b", 2.0], ["a", 1.0]])
     assert not same_answer([[1]], [[2]])
+
+
+def test_comparison_allows_extra_columns_but_not_wrong_values():
+    assert same_answer([["petrol", 135868.74]], [["petrol"]])
+    assert same_answer([[128386.0, "2026-08"]], [["2026-08"]])
+    assert same_answer([["2026-03", 9, 95583.0], ["2026-04", 4, 83135.0]], [["2026-04", 83135.0], ["2026-03", 95583.0]])
+    assert not same_answer([["Food", 844620.41]], [[26000.0]])
+    assert not same_answer([["petrol"]], [["petrol", 1.0]])
+    assert not same_answer([["a"], ["b"]], [["a"]])
+    assert same_answer([], [])

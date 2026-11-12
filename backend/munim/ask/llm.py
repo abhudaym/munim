@@ -27,6 +27,16 @@ day, in the latest year that has data for it.
 - category must match a listed name exactly. subcategory and merchant are lowercase; match merchant with \
 LIKE '%text%' in lowercase. Words like coffee, eating out and delivery are subcategories (coffee, eatout, \
 delivery) when they are listed.
+- Per-month breakdowns and monthly averages over "the last 3/6/12 months" use whole calendar months only: \
+txn_date >= three_full_months_start / six_full_months_start / twelve_full_months_start AND txn_date <= \
+last_month_end. Say in note that the current, unfinished month is left out.
+- "Average per month" is AVG over a subquery that first sums by month: SELECT AVG(t) FROM (SELECT SUM(amount) \
+AS t FROM ... GROUP BY month). AVG(amount) alone is the average entry, which is a different thing.
+- "Biggest/largest single expense" means one entry: ORDER BY amount DESC LIMIT 1 with its date, category, \
+note and amount. Never SUM for it.
+- When a subcategory or merchant already answers the question (coffee, petrol), filter on that alone. Do not \
+add a category filter as well; the same tag can sit under more than one category.
+- Never select a non-aggregated column next to SUM/COUNT/AVG without a GROUP BY on it.
 - Totals use SUM(amount). Name money columns spent, total or amount, and counts n.
 - Return only what was asked: one number for "how much" or "how many"; a short ranked list (10 rows unless \
 told otherwise) for "top" or "biggest"; a month column, ordered by month, for per-month breakdowns.

@@ -161,7 +161,7 @@ def test_context_carries_worked_examples_that_really_run(db_path):
     text = context(db_path)
     queries = [line.split("SQL: ", 1)[1] for line in text.splitlines() if line.strip().startswith("SQL: ")]
     assert len(queries) == 4  # two tag examples, per month, monthly average; no odometer data here
-    assert "subcategory = 'coffee' AND txn_date >= '2026-03-01'" in queries[0] and "category =" not in queries[0]
+    assert "subcategory = 'coffee' AND txn_date >= '2026-03-01'" in queries[0] and " category =" not in queries[0]
     conn = connect_readonly(db_path)
     try:
         for sql in queries:

@@ -229,6 +229,9 @@ export type Card = {
   name: string;
   statement_day: number;
   due_days: number | null;
+  color: string | null;
+  last4: string | null;
+  image_url: string | null;
   archived: boolean;
   next_statement: string;
   days_to_statement: number;
@@ -244,8 +247,16 @@ export const cards = {
   list: () => request<Card[]>("/api/cards"),
   add: (body: { name: string; statement_day: number; due_days: number | null }) =>
     request<Card>("/api/cards", send("POST", body)),
-  patch: (id: number, body: { name?: string; statement_day?: number; due_days?: number | null; archived?: boolean }) =>
-    request<Card>(`/api/cards/${id}`, send("PATCH", body)),
+  patch: (
+    id: number,
+    body: { name?: string; statement_day?: number; due_days?: number | null; color?: string | null; last4?: string | null; archived?: boolean },
+  ) => request<Card>(`/api/cards/${id}`, send("PATCH", body)),
+  setImage: (id: number, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Card>(`/api/cards/${id}/image`, { method: "PUT", body: form });
+  },
+  removeImage: (id: number) => request<Card>(`/api/cards/${id}/image`, { method: "DELETE" }),
   remove: (id: number) => gone(`/api/cards/${id}`),
   bills: (id: number) => request<Bill[]>(`/api/cards/${id}/bills`),
   addBill: (id: number, body: { statement_date: string; amount: number; min_due?: number | null; due_date?: string | null }) =>

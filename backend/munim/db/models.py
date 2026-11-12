@@ -145,6 +145,9 @@ class Card(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True)
     statement_day: Mapped[int] = mapped_column(Integer)  # day of month the bill is generated, 1-31
     due_days: Mapped[int | None] = mapped_column(Integer)  # days from statement to due date, when it is fixed
+    color: Mapped[str | None] = mapped_column(String(7))  # face colour, #rrggbb
+    last4: Mapped[str | None] = mapped_column(String(4))  # last four digits, for telling cards apart
+    image: Mapped[str | None] = mapped_column(String(100))  # file under data/cards/, your own picture of the card
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime)
 

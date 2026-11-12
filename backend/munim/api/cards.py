@@ -4,31 +4,43 @@ from __future__ import annotations
 
 import calendar
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from munim.api.deps import get_session
+from munim.api.deps import get_data_dir, get_session
 from munim.db import Bill, Card
 from munim.db.models import utcnow
 
 router = APIRouter(prefix="/api")
+
+COLOR = r"^#[0-9a-fA-F]{6}$"
+LAST4 = r"^\d{4}$"
+MAX_IMAGE = 3 * 1024 * 1024
+# Recognised by the first bytes of the file, not by what the upload claims to be.
+IMAGE_KINDS = ((b"\x89PNG\r\n\x1a\n", "png"), (b"\xff\xd8\xff", "jpg"), (b"RIFF", "webp"))
 
 
 class CardIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     statement_day: int = Field(ge=1, le=31)
     due_days: int | None = Field(default=None, ge=0, le=60)
+    color: str | None = Field(default=None, pattern=COLOR)
+    last4: str | None = Field(default=None, pattern=LAST4)
 
 
 class CardPatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     statement_day: int | None = Field(default=None, ge=1, le=31)
     due_days: int | None = Field(default=None, ge=0, le=60)
+    color: str | None = Field(default=None, pattern=COLOR)
+    last4: str | None = Field(default=None, pattern=LAST4)
     archived: bool | None = None
 
 
@@ -64,6 +76,9 @@ class CardOut(BaseModel):
     name: str
     statement_day: int
     due_days: int | None
+    color: str | None
+    last4: str | None
+    image_url: str | None
     archived: bool
     next_statement: date
     days_to_statement: int
@@ -125,6 +140,9 @@ def _card_out(card: Card, bills: list[Bill], today: date) -> CardOut:
         name=card.name,
         statement_day=card.statement_day,
         due_days=card.due_days,
+        color=card.color,
+        last4=card.last4,
+        image_url=f"/api/cards/{card.id}/image?v={card.image}" if card.image else None,
         archived=card.archived_at is not None,
         next_statement=nxt,
         days_to_statement=(nxt - today).days,
@@ -161,7 +179,10 @@ def list_cards(session: Session = Depends(get_session)):
 
 @router.post("/cards", response_model=CardOut, status_code=201)
 def create_card(body: CardIn, session: Session = Depends(get_session)):
-    card = Card(name=body.name.strip(), statement_day=body.statement_day, due_days=body.due_days)
+    card = Card(
+        name=body.name.strip(), statement_day=body.statement_day, due_days=body.due_days,
+        color=body.color, last4=body.last4,
+    )
     session.add(card)
     try:
         session.commit()
@@ -181,6 +202,10 @@ def patch_card(card_id: int, body: CardPatch, session: Session = Depends(get_ses
         card.statement_day = body.statement_day
     if "due_days" in changed:
         card.due_days = body.due_days
+    if "color" in changed:
+        card.color = body.color
+    if "last4" in changed:
+        card.last4 = body.last4
     if body.archived is not None:
         card.archived_at = utcnow() if body.archived else None
     try:
@@ -191,9 +216,65 @@ def patch_card(card_id: int, body: CardPatch, session: Session = Depends(get_ses
     return _card_out(card, _bills(session, card.id), date.today())
 
 
-@router.delete("/cards/{card_id}", status_code=204)
-def delete_card(card_id: int, session: Session = Depends(get_session)):
+def _image_dir(data_dir: Path) -> Path:
+    path = data_dir / "cards"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _drop_image(card: Card, data_dir: Path) -> None:
+    if card.image:
+        (_image_dir(data_dir) / card.image).unlink(missing_ok=True)
+        card.image = None
+
+
+@router.put("/cards/{card_id}/image", response_model=CardOut)
+async def set_card_image(
+    card_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    data_dir: Path = Depends(get_data_dir),
+):
+    """Your own picture of the card. Kept on this machine under data/cards/."""
     card = _card(session, card_id)
+    body = await file.read(MAX_IMAGE + 1)
+    if len(body) > MAX_IMAGE:
+        raise HTTPException(413, "Image is larger than 3 MB")
+    ext = next((e for magic, e in IMAGE_KINDS if body.startswith(magic)), None)
+    if ext == "webp" and body[8:12] != b"WEBP":
+        ext = None
+    if ext is None:
+        raise HTTPException(415, "Use a PNG, JPEG or WebP image")
+    _drop_image(card, data_dir)
+    import hashlib
+
+    card.image = f"{card.id}-{hashlib.sha256(body).hexdigest()[:12]}.{ext}"
+    (_image_dir(data_dir) / card.image).write_bytes(body)
+    session.commit()
+    return _card_out(card, _bills(session, card.id), date.today())
+
+
+@router.get("/cards/{card_id}/image")
+def get_card_image(card_id: int, session: Session = Depends(get_session), data_dir: Path = Depends(get_data_dir)):
+    card = _card(session, card_id)
+    path = _image_dir(data_dir) / card.image if card.image else None
+    if path is None or not path.is_file():
+        raise HTTPException(404, "This card has no image")
+    return FileResponse(path, headers={"Cache-Control": "private, max-age=31536000, immutable"})
+
+
+@router.delete("/cards/{card_id}/image", response_model=CardOut)
+def delete_card_image(card_id: int, session: Session = Depends(get_session), data_dir: Path = Depends(get_data_dir)):
+    card = _card(session, card_id)
+    _drop_image(card, data_dir)
+    session.commit()
+    return _card_out(card, _bills(session, card.id), date.today())
+
+
+@router.delete("/cards/{card_id}", status_code=204)
+def delete_card(card_id: int, session: Session = Depends(get_session), data_dir: Path = Depends(get_data_dir)):
+    card = _card(session, card_id)
+    _drop_image(card, data_dir)
     session.query(Bill).filter(Bill.card_id == card.id).delete()
     session.delete(card)
     session.commit()

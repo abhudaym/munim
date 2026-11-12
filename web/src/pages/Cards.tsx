@@ -14,6 +14,40 @@ const ordinal = (n: number) => {
 const inDays = (n: number) => (n === 0 ? "today" : n === 1 ? "tomorrow" : `in ${n} days`);
 const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(/,/g, "")));
 
+// Dark enough that white text stays readable on every one.
+const FACES = [
+  { hex: "#2b2f36", name: "Graphite" },
+  { hex: "#1f3a8a", name: "Blue" },
+  { hex: "#0f5c55", name: "Teal" },
+  { hex: "#1d5c2e", name: "Green" },
+  { hex: "#7a1f2b", name: "Maroon" },
+  { hex: "#4c2a85", name: "Purple" },
+  { hex: "#8a4a0c", name: "Copper" },
+  { hex: "#6b5200", name: "Gold" },
+];
+/** A card with no colour picked gets one from its name, so it stays the same every time. */
+const faceColor = (c: { name: string; color: string | null }) => {
+  if (c.color) return c.color;
+  let h = 0;
+  for (const ch of c.name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return FACES[h % FACES.length].hex;
+};
+
+/** The card drawn as a card: your own picture if you added one, else a plain coloured face. */
+function CardFace({ card: c }: { card: Card }) {
+  if (c.image_url) return <img className="face" src={c.image_url} alt={`${c.name} card`} />;
+  return (
+    <div className="face" style={{ background: faceColor(c) }} role="img" aria-label={`${c.name} card`}>
+      <span className="face-chip" aria-hidden="true" />
+      <span className="face-num">•••• •••• •••• {c.last4 ?? "••••"}</span>
+      <span className="face-foot">
+        <span className="face-name">{c.name}</span>
+        <span>BILL {ordinal(c.statement_day).toUpperCase()}</span>
+      </span>
+    </div>
+  );
+}
+
 function statusText(b: Bill) {
   if (b.status === "paid") return `paid ${b.paid_on ? day(b.paid_on) : ""}`;
   if (b.days_to_due === null) return "unpaid, no due date";
@@ -137,6 +171,8 @@ function CardPanel({ card: c, today, act }: { card: Card; today: string; act: (f
         </span>
       </div>
 
+      <div className="face-row">
+      <CardFace card={c} />
       <div className="kv">
         <span className="muted">Next bill</span>
         <span>
@@ -168,6 +204,7 @@ function CardPanel({ card: c, today, act }: { card: Card; today: string; act: (f
             <span className="mono">{inr(c.unpaid_total)} <span className="muted">across {c.unpaid_count} bills</span></span>
           </>
         )}
+      </div>
       </div>
 
       {series.length >= 2 && <div className="tile-note">Bill amount by the month it was generated</div>}
@@ -214,6 +251,7 @@ function CardPanel({ card: c, today, act }: { card: Card; today: string; act: (f
               setMode("");
             })
           }
+          onImage={(file) => act(() => (file ? cards.setImage(c.id, file) : cards.removeImage(c.id)))}
         />
       )}
       {mode === "bills" && (
@@ -290,37 +328,73 @@ function BillForm({
   );
 }
 
-function EditForm({
-  card,
-  onSave,
-}: {
-  card: Card;
-  onSave: (b: { name: string; statement_day: number; due_days: number | null }) => void;
-}) {
+type CardEdit = { name: string; statement_day: number; due_days: number | null; color: string | null; last4: string | null };
+
+function EditForm({ card, onSave, onImage }: { card: Card; onSave: (b: CardEdit) => void; onImage: (file: File | null) => void }) {
   const [name, setName] = useState(card.name);
   const [stmtDay, setStmtDay] = useState(String(card.statement_day));
   const [dueDays, setDueDays] = useState(card.due_days === null ? "" : String(card.due_days));
+  const [last4, setLast4] = useState(card.last4 ?? "");
+  const [color, setColor] = useState(faceColor(card));
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const d = Number(stmtDay);
     if (!name.trim() || !(d >= 1 && d <= 31)) return;
-    onSave({ name: name.trim(), statement_day: d, due_days: num(dueDays) });
+    if (last4 !== "" && !/^\d{4}$/.test(last4)) return;
+    onSave({ name: name.trim(), statement_day: d, due_days: num(dueDays), color, last4: last4 || null });
   };
   return (
-    <form className="filters" onSubmit={submit}>
-      <label className="field">
-        Name
-        <input value={name} onChange={(e) => setName(e.target.value)} />
-      </label>
-      <label className="field">
-        Bill day of month
-        <input inputMode="numeric" value={stmtDay} onChange={(e) => setStmtDay(e.target.value)} style={{ width: 120 }} />
-      </label>
-      <label className="field">
-        Days to pay (optional)
-        <input inputMode="numeric" value={dueDays} onChange={(e) => setDueDays(e.target.value)} style={{ width: 140 }} />
-      </label>
-      <button type="submit" className="btn primary">Save</button>
+    <form className="edit-card" onSubmit={submit}>
+      <div className="filters">
+        <label className="field">
+          Name
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="field">
+          Bill day of month
+          <input inputMode="numeric" value={stmtDay} onChange={(e) => setStmtDay(e.target.value)} style={{ width: 120 }} />
+        </label>
+        <label className="field">
+          Days to pay (optional)
+          <input inputMode="numeric" value={dueDays} onChange={(e) => setDueDays(e.target.value)} style={{ width: 140 }} />
+        </label>
+        <label className="field">
+          Last 4 digits (optional)
+          <input inputMode="numeric" maxLength={4} value={last4} onChange={(e) => setLast4(e.target.value)} style={{ width: 150 }} />
+        </label>
+      </div>
+      <div role="group" aria-label="Card colour" className="swatches">
+        {FACES.map((f) => (
+          <button
+            type="button"
+            key={f.hex}
+            className="swatch-btn"
+            style={{ background: f.hex }}
+            aria-label={f.name}
+            aria-pressed={color === f.hex}
+            title={f.name}
+            onClick={() => setColor(f.hex)}
+          />
+        ))}
+      </div>
+      <div className="filters">
+        <button type="submit" className="btn primary">Save</button>
+        <label className="btn filebtn">
+          {card.image_url ? "Replace picture" : "Use my own picture"}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onImage(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {card.image_url && (
+          <button type="button" className="btn" onClick={() => onImage(null)}>Remove picture</button>
+        )}
+      </div>
     </form>
   );
 }

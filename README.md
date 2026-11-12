@@ -161,3 +161,5 @@ The **Cards** page tracks each credit card's bills by hand. It is separate from 
 - A 31st statement day falls on the last day of shorter months.
 
 Reading the amounts from Gmail is a later step.
+
+Each card is drawn as a card. Under **Edit** you can pick its colour, add the last four digits, or use your own picture of the card (PNG, JPEG or WebP, up to 3 MB, kept in `data/cards/` on this machine). Munim does not download card images.

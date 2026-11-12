@@ -32,6 +32,11 @@ def _migrate(conn) -> None:
         for km, row_id in found:
             conn.exec_driver_sql("UPDATE transactions SET odometer_km = ? WHERE id = ?", (km, row_id))
 
+    card_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(cards)")}
+    for name, kind in (("color", "VARCHAR(7)"), ("last4", "VARCHAR(4)"), ("image", "VARCHAR(100)")):
+        if card_columns and name not in card_columns:
+            conn.exec_driver_sql(f"ALTER TABLE cards ADD COLUMN {name} {kind}")
+
 
 def init_db(engine: Engine) -> None:
     Base.metadata.create_all(engine)

@@ -112,3 +112,62 @@ def test_archive_and_clear_due_days(client):
     assert r["due_days"] is None and r["suggested_due"] is None
     r = client.patch(f"/api/cards/{card['id']}", json={"archived": True}).json()
     assert r["archived"] is True
+
+
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+
+
+def test_face_colour_and_last4(client):
+    card = client.post(
+        "/api/cards", json={"name": "Axis", "statement_day": 11, "color": "#1f3a8a", "last4": "4417"}
+    ).json()
+    assert card["color"] == "#1f3a8a" and card["last4"] == "4417" and card["image_url"] is None
+    assert client.patch(f"/api/cards/{card['id']}", json={"color": "red"}).status_code == 422
+    assert client.patch(f"/api/cards/{card['id']}", json={"last4": "12345"}).status_code == 422
+    cleared = client.patch(f"/api/cards/{card['id']}", json={"last4": None}).json()
+    assert cleared["last4"] is None and cleared["color"] == "#1f3a8a"
+
+
+def test_card_image_upload_serve_replace_remove(client, data_dir):
+    card = _card(client)
+    r = client.put(f"/api/cards/{card['id']}/image", files={"file": ("card.png", PNG, "image/png")})
+    assert r.status_code == 200, r.text
+    url = r.json()["image_url"]
+    assert client.get(url).content == PNG
+    jpg = b"\xff\xd8\xff" + b"\x01" * 20
+    url2 = client.put(f"/api/cards/{card['id']}/image", files={"file": ("c.jpg", jpg, "image/jpeg")}).json()["image_url"]
+    assert url2 != url and client.get(url2).content == jpg
+    assert len(list((data_dir / "cards").iterdir())) == 1  # the old file is gone
+    assert client.delete(f"/api/cards/{card['id']}/image").json()["image_url"] is None
+    assert client.get(f"/api/cards/{card['id']}/image").status_code == 404
+    assert list((data_dir / "cards").iterdir()) == []
+
+
+def test_card_image_rejects_non_images(client):
+    card = _card(client)
+    bad = client.put(f"/api/cards/{card['id']}/image", files={"file": ("x.png", b"<svg onload=1>", "image/png")})
+    assert bad.status_code == 415
+    big = client.put(f"/api/cards/{card['id']}/image", files={"file": ("x.png", PNG + b"0" * (3 * 1024 * 1024), "image/png")})
+    assert big.status_code == 413
+
+
+def test_old_cards_table_gains_the_new_columns(tmp_path):
+    import sqlite3
+
+    from munim.api.app import create_app
+
+    data = tmp_path / "old"
+    data.mkdir()
+    conn = sqlite3.connect(data / "munim.db")
+    conn.execute(
+        "CREATE TABLE cards (id INTEGER PRIMARY KEY, name VARCHAR(100) UNIQUE, statement_day INTEGER, "
+        "due_days INTEGER, created_at DATETIME, archived_at DATETIME)"
+    )
+    conn.execute("INSERT INTO cards (name, statement_day) VALUES ('Axis Amex', 11)")
+    conn.commit()
+    conn.close()
+    from fastapi.testclient import TestClient
+
+    with TestClient(create_app(data, load_llm_from_env=False)) as c:
+        listed = c.get("/api/cards").json()
+        assert listed[0]["name"] == "Axis Amex" and listed[0]["color"] is None

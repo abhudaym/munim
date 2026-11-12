@@ -287,3 +287,25 @@ button.link:hover { color: var(--accent); }
 .bill-row > :nth-child(2) { flex: 0 0 90px; }
 .bill-row > :nth-child(3) { flex: 1 1 130px; }
 .bill-row > :nth-child(4) { margin-left: auto; }
+
+/* the card drawn as a card: the one place with colour and round corners */
+.face-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; }
+.face-row .kv { flex: 1 1 240px; min-width: 0; }
+.face {
+  flex: 0 0 auto; width: 100%; max-width: 280px; aspect-ratio: 1.586; border-radius: 14px;
+  position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
+  padding: 16px 18px; color: #ffffff; object-fit: cover;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.22));
+}
+img.face { padding: 0; display: block; background: var(--raised); }
+.face-chip { position: absolute; top: 34%; left: 18px; width: 40px; height: 30px; border-radius: 6px; background: linear-gradient(135deg, #e8cf8b, #b8943d); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.face-num { font-size: 15px; letter-spacing: 0.08em; white-space: nowrap; }
+.face-foot { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; letter-spacing: 0.06em; }
+.face-name { text-transform: uppercase; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edit-card { display: grid; gap: 14px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch-btn { width: 44px; height: 44px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.swatch-btn[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 2px var(--bg); }
+.swatch-btn:focus-visible, .filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.filebtn { cursor: pointer; position: relative; }

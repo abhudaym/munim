@@ -132,3 +132,19 @@ Tests use generated files. Never commit a real export.
 ### Trends with several lines
 
 A result shaped like month × name × amount (for example food and social life by month), or a month column followed by several amount columns, is drawn as one line per series, up to six, with a legend and a readout of every series on hover. Long all-time monthly results (up to 120 months) draw as a line instead of falling back to a table.
+
+
+## Net worth
+
+The **Net worth** page tracks where your money sits: bank, Dhan, Upstox, mutual funds, PF, anything else.
+
+- Add an account and give it a type (cash, stocks, mutual funds, debt/PF/FD, other).
+- Use **Record value** to type in what it is worth today. Add the amount invested if you know it, to see the gain.
+- One entry per account per day; entering the same day again replaces it. Old entries stay under **History**.
+- Net worth is the latest value of every live account. The monthly line carries each account's last known value forward. Archived accounts leave the total but keep their history.
+- "Put into investments" and the per-month bars come from your Money Manager entries in the Investments category.
+- An account that has not been updated in 35 days is flagged as old.
+
+Nothing is fetched from brokers. Dhan and Upstox need a fresh login token every day, so typing a monthly number is less work. A holdings CSV import can fill these entries later.
+
+The top bar's `ask >` box runs a question from any page and opens the answer in Ask.

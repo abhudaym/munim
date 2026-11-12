@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from munim import __version__, config
+from munim.api.networth import router as networth_router
 from munim.api.routes import router
 from munim.db import init_db, make_engine
 from munim.ask import SQLWriter, writer_from_env
@@ -37,6 +38,7 @@ def create_app(
         llm = writer_from_env()  # None when nothing is configured
     app.state.llm = llm
     app.include_router(router)
+    app.include_router(networth_router)
 
     @app.get("/api/health")
     def health():

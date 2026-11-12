@@ -172,3 +172,44 @@ export const api = {
       body: JSON.stringify(body),
     }),
 };
+
+export type AccountType = "cash" | "equity" | "mutual_fund" | "debt" | "other";
+export type Account = {
+  id: number;
+  name: string;
+  type: AccountType;
+  archived: boolean;
+  value: number | null;
+  invested: number | null;
+  gain: number | null;
+  as_of: string | null;
+  days_old: number | null;
+};
+export type Snapshot = { id: number; as_of: string; value: number; invested: number | null; note: string | null };
+export type NetWorth = {
+  total: number;
+  as_of: string | null;
+  invested: number | null;
+  gain: number | null;
+  by_type: { type: string; total: number; share: number }[];
+  history: { month: string; total: number }[];
+  contributions: { month: string; total: number }[];
+  contributed_total: number;
+};
+const send = (method: string, body?: unknown) => (body === undefined ? { method } : json(method, body));
+const gone = async (path: string) => {
+  const res = await fetch(path, { method: "DELETE" });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+};
+export const worth = {
+  networth: () => request<NetWorth>("/api/networth"),
+  accounts: () => request<Account[]>("/api/accounts"),
+  addAccount: (body: { name: string; type: AccountType }) => request<Account>("/api/accounts", send("POST", body)),
+  patchAccount: (id: number, body: { name?: string; type?: AccountType; archived?: boolean }) =>
+    request<Account>(`/api/accounts/${id}`, send("PATCH", body)),
+  deleteAccount: (id: number) => gone(`/api/accounts/${id}`),
+  snapshots: (id: number) => request<Snapshot[]>(`/api/accounts/${id}/snapshots`),
+  record: (id: number, body: { as_of: string; value: number; invested?: number | null; note?: string | null }) =>
+    request<Snapshot>(`/api/accounts/${id}/snapshots`, send("POST", body)),
+  deleteSnapshot: (id: number) => gone(`/api/snapshots/${id}`),
+};

@@ -10,7 +10,7 @@ const SUGGESTIONS = [
   "Which merchant did I spend the most at this year?",
 ];
 
-export default function Ask() {
+export default function Ask({ seed }: { seed: { text: string; n: number } }) {
   const [status, setStatus] = useState<AskStatus | null>(null);
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<AskResult | null>(null);
@@ -31,6 +31,7 @@ export default function Ask() {
     loadHistory();
   }, [loadHistory]);
 
+  const [ran, setRan] = useState(0);
   const submit = async (q: string) => {
     const text = q.trim();
     if (text.length < 3 || busy) return;
@@ -53,6 +54,13 @@ export default function Ask() {
       loadHistory();
     }
   };
+  useEffect(() => {
+    if (seed.n > ran && seed.text) {
+      setRan(seed.n);
+      void submit(seed.text);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed.n]);
   const pin = async () => {
     if (!result?.sql || !title.trim()) return;
     try {

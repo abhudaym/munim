@@ -281,5 +281,9 @@ button.link:hover { color: var(--accent); }
 
 /* cards */
 .kv { display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; }
-.bill-row { display: grid; grid-template-columns: 110px 100px 1fr auto; gap: 12px; align-items: center; padding: 6px 0; border-bottom: 1px solid #1c211e; }
-@media (max-width: 720px) { .bill-row { grid-template-columns: 1fr 1fr; } }
+.card { min-width: 0; }
+.bill-row { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid #1c211e; }
+.bill-row > :nth-child(1) { flex: 0 0 110px; }
+.bill-row > :nth-child(2) { flex: 0 0 90px; }
+.bill-row > :nth-child(3) { flex: 1 1 130px; }
+.bill-row > :nth-child(4) { margin-left: auto; }

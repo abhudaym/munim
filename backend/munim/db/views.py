@@ -2,6 +2,11 @@
 
 v_expenses  money you actually spent (kind = 'expense', live rows only)
 v_entries   every live entry: expenses, income and transfers (SIPs, EMIs)
+v_cards     credit cards you track by hand (name, bill day, days to pay)
+v_bills     the statements you typed in for those cards
+
+The card views are separate on purpose: card bills are typed totals, not purchases, and they
+are never part of v_expenses, so a bill can not be added to spend by mistake.
 
 Spend questions default to v_expenses *structurally*, so a 40,000 SIP can never leak into
 "how much did I spend" because the model forgot a WHERE clause.
@@ -24,7 +29,35 @@ COLUMNS: list[tuple[str, str]] = [
     ("odometer_km", "the car's odometer reading typed on some car entries (fuel, service); cumulative; usually NULL"),
 ]
 
-VIEW_NAMES = ("v_expenses", "v_entries")
+VIEW_NAMES = ("v_expenses", "v_entries", "v_cards", "v_bills")
+
+# (v_bills looks the card name up with a subquery rather than a JOIN, and both card views carry a filter SQLite cannot optimise away (it would drop `id IS NOT NULL`).
+# Without that, SQLite reports the bare table under a plain count(*) outside the view, which the
+# read-only connection has to refuse.)
+# Which real tables each view may read. Anything else a query reaches for is refused.
+VIEW_SOURCES: dict[str, set[str]] = {
+    "v_expenses": {"transactions"},
+    "v_entries": {"transactions"},
+    "v_cards": {"cards"},
+    "v_bills": {"cards", "bills"},
+}
+
+CARD_COLUMNS: list[tuple[str, str]] = [
+    ("card", "card name, e.g. 'HSBC Live+'"),
+    ("statement_day", "day of the month the bill is generated, 1 to 31"),
+    ("due_days", "days allowed to pay after the bill is generated; NULL when not set"),
+    ("archived", "1 when the card is archived, else 0"),
+]
+BILL_COLUMNS: list[tuple[str, str]] = [
+    ("card", "card name, same as v_cards.card"),
+    ("statement_date", "date the bill was generated, 'YYYY-MM-DD'"),
+    ("month", "'YYYY-MM' of the statement date"),
+    ("amount", "total due on that bill, INR"),
+    ("min_due", "minimum due, INR; often NULL"),
+    ("due_date", "'YYYY-MM-DD' or NULL"),
+    ("paid_on", "date it was paid, or NULL when unpaid"),
+    ("is_paid", "1 when paid, else 0"),
+]
 
 _SELECT = """SELECT txn_ts,
        date(txn_ts) AS txn_date,
@@ -37,6 +70,19 @@ WHERE deleted_at IS NULL"""
 VIEW_DDL = {
     "v_expenses": f"CREATE VIEW v_expenses AS\n{_SELECT}\n  AND kind = 'expense'",
     "v_entries": f"CREATE VIEW v_entries AS\n{_SELECT}",
+    "v_cards": """CREATE VIEW v_cards AS
+SELECT name AS card, statement_day, due_days,
+       CASE WHEN archived_at IS NULL THEN 0 ELSE 1 END AS archived
+FROM cards
+WHERE name > ''""",
+    "v_bills": """CREATE VIEW v_bills AS
+SELECT (SELECT name FROM cards WHERE id = b.card_id) AS card,
+       b.statement_date,
+       strftime('%Y-%m', b.statement_date) AS month,
+       b.amount, b.min_due, b.due_date, b.paid_on,
+       CASE WHEN b.paid_on IS NULL THEN 0 ELSE 1 END AS is_paid
+FROM bills b
+WHERE b.statement_date > ''""",
 }
 
 

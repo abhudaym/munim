@@ -7,7 +7,7 @@ import os
 import sqlite3
 from datetime import date, timedelta
 
-from munim.db.views import COLUMNS
+from munim.db.views import BILL_COLUMNS, CARD_COLUMNS, COLUMNS
 
 MIN_MERCHANT_USES = 3
 MAX_MERCHANTS = 40
@@ -64,7 +64,8 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         "Views (use these names exactly; there are no other tables):",
         "  v_expenses: money spent. Use this for any question about spending.",
         "  v_entries: every entry including income and transfers (SIPs, investments, EMIs).",
-        "Columns, identical in both:",
+        "  v_cards, v_bills: credit cards and the bills typed in for them (see below).",
+        "Columns of v_expenses and v_entries, identical in both:",
         *[f"  {name}: {desc}" for name, desc in COLUMNS],
         "",
         "Ready-made dates (copy these as literals, never use 'now' or date functions on today):",
@@ -80,6 +81,17 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         lines += ["", f"Odometer readings: {odo_n} entries, from {odo_first} to {odo_last}. None outside those dates."]
     else:
         lines += ["", "Odometer readings: none recorded."]
+    cards = q("SELECT card, statement_day, archived FROM v_cards ORDER BY card")
+    lines += ["", "Credit cards. v_cards columns:", *[f"  {name}: {desc}" for name, desc in CARD_COLUMNS]]
+    lines += ["v_bills columns:", *[f"  {name}: {desc}" for name, desc in BILL_COLUMNS]]
+    if cards:
+        n_bills, b_first, b_last = q("SELECT count(*), min(statement_date), max(statement_date) FROM v_bills")[0]
+        lines += [
+            "Cards as 'name (bill day, archived)': " + ", ".join(f"{c} (day {d}{', archived' if a else ''})" for c, d, a in cards),
+            f"Bills recorded: {n_bills}" + (f", from {b_first} to {b_last}." if n_bills else "."),
+        ]
+    else:
+        lines += ["No cards have been added yet."]
     if subs:
         lines += ["", "Subcategories as 'name (entries)':", "  " + ", ".join(f"{s} ({c})" for s, c in subs)]
     if send_merchants:
@@ -89,11 +101,17 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         )
         if merchants:
             lines += ["", "Frequent merchants as 'name (entries)':", "  " + ", ".join(f"{m} ({c})" for m, c in merchants)]
-    lines += ["", *_examples(date_tokens(today), [name for name, _ in subs], bool(odo_n))]
+    lines += ["", *_examples(date_tokens(today), [name for name, _ in subs], bool(odo_n), bool(cards))]
     return "\n".join(lines)
 
 
-def _examples(t: dict[str, str], tags: list[str], has_odometer: bool) -> list[str]:
+_LATEST_BILLS = (
+    "SELECT card, statement_date, amount, due_date, is_paid FROM v_bills b "
+    "WHERE statement_date = (SELECT MAX(statement_date) FROM v_bills WHERE card = b.card) ORDER BY card"
+)
+
+
+def _examples(t: dict[str, str], tags: list[str], has_odometer: bool, has_cards: bool = False) -> list[str]:
     """Worked examples with today's real dates. Small models follow these far better than rules."""
     out = ["Examples (same style, same date literals):"]
 
@@ -135,5 +153,20 @@ def _examples(t: dict[str, str], tags: list[str], has_odometer: bool) -> list[st
             f"AND txn_date >= '{t['last_month_start']}' AND txn_date <= '{t['last_month_end']}') AS spent, "
             "(SELECT MAX(odometer_km) - MIN(odometer_km) FROM v_expenses WHERE odometer_km IS NOT NULL "
             f"AND txn_date >= '{t['last_month_start']}' AND txn_date <= '{t['last_month_end']}') AS km_driven",
+        )
+    if has_cards:
+        add("What is my latest bill on each card?", _LATEST_BILLS)
+        add(
+            "Which bills are unpaid?",
+            "SELECT card, statement_date, amount, due_date FROM v_bills WHERE is_paid = 0 ORDER BY due_date",
+        )
+        add(
+            "Which bills are overdue?",
+            f"SELECT card, amount, due_date FROM v_bills WHERE is_paid = 0 AND due_date < '{t['today']}' ORDER BY due_date",
+        )
+        add(
+            "How much did my cards bill me per month this year?",
+            f"SELECT month, card, SUM(amount) AS billed FROM v_bills WHERE statement_date >= '{t['year_start']}' "
+            "GROUP BY month, card ORDER BY month",
         )
     return out

@@ -84,11 +84,21 @@ a table whitelist, a 5 s limit and a 500-row cap. Every question and its query i
 `questions` table (never the result rows).
 
 **What leaves this machine** (hosted models only; with Ollama, nothing): your question, category and subcategory names, merchant names used
-at least 3 times (set `MUNIM_SEND_MERCHANTS=0` to withhold), and the date range. Never amounts or
-individual transactions.
+at least 3 times (set `MUNIM_SEND_MERCHANTS=0` to withhold), your card names with their bill day, how
+many bills are recorded and their date range, and the date range of the question. Never amounts or
+individual transactions or bills.
 
 `munim eval` scores the model against ~20 golden questions with hand-written reference queries
 (real API calls; run it by hand after changing the model or prompt).
+
+### Asking about cards
+
+Ask also reads the Cards page. Try "which card bills are unpaid?", "what is my latest HSBC bill?" or
+"bills per month for each card" (that one draws one line per card). Bills are the totals you typed in, so
+they are never added to your spending. Two more views, `v_cards` and `v_bills`, are all the model can see of
+them: the picture, colour and last four digits are not exposed, and the card tables themselves stay closed.
+Questions about individual purchases on a card cannot be answered, because Munim does not know which
+card an expense was paid with.
 
 ## Dashboard
 

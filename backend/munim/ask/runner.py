@@ -15,7 +15,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from munim.db.views import VIEW_NAMES
+from munim.db.views import VIEW_NAMES, VIEW_SOURCES
 
 MAX_ROWS = 500
 TIMEOUT_S = 5.0
@@ -47,7 +47,7 @@ def _authorizer(action, arg1, arg2, _db, source):
         if table in VIEW_NAMES:
             return sqlite3.SQLITE_OK
         # The views read the base table on our behalf; direct reads of it are refused.
-        if table == "transactions" and (source or "").lower() in VIEW_NAMES:
+        if table in VIEW_SOURCES.get((source or "").lower(), ()):
             return sqlite3.SQLITE_OK
         # SQLite also reports reads of CTE names (recursive ones, notably). A name that is
         # not a real table, view or internal object can only be a CTE, which is harmless.
@@ -84,7 +84,7 @@ def run_query(
         if "interrupted" in text:
             raise QueryError(f"The query ran longer than {timeout:g}s and was stopped.") from exc
         if "not authorized" in text:
-            raise QueryError("The query touches something that is not allowed. Use only v_expenses or v_entries.") from exc
+            raise QueryError("The query touches something that is not allowed. Use only " + ", ".join(VIEW_NAMES) + ".") from exc
         raise QueryError(text) from exc
     finally:
         conn.set_progress_handler(None, 0)

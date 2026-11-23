@@ -50,8 +50,15 @@ when the question also filters on fuel; name it km_driven. Distance per fill-up 
 If the readings start later or end earlier than the period asked for, say in note which dates the distance \
 really covers. Cost per km divides only the spend between the first and last reading by that distance.
 - A question with two parts (a total and a distance) is still one query: return them as two columns.
+- Credit card questions use v_bills and v_cards, never v_expenses. A bill is a total typed in from a \
+statement, not a list of purchases, so "what did I spend on a card" means the bill amounts. Never add bills \
+to spending. "Latest bill" is the row with the newest statement_date for each card. "Unpaid" is is_paid = 0. \
+"Overdue" is is_paid = 0 AND due_date earlier than today. Match a card with LIKE '%text%' on its lowercase name \
+(card LIKE '%hsbc%' will not match a capital H, so use LOWER(card)). A bill amount is per statement period, \
+so say in note that it covers the statement date shown.
 - One statement. No comments. SQLite syntax only.
 - If the question cannot be answered from these views (balances, net worth, market value of investments, \
+purchases made on a particular card, \
 dates outside the data), set sql to an empty string and explain in note.
 - note: one short sentence saying what the query measures and the exact date range, so the person can spot \
 a misreading."""

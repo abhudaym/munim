@@ -56,9 +56,15 @@ to spending. "Latest bill" is the row with the newest statement_date for each ca
 "Overdue" is is_paid = 0 AND due_date earlier than today. Match a card with LIKE '%text%' on its lowercase name \
 (card LIKE '%hsbc%' will not match a capital H, so use LOWER(card)). A bill amount is per statement period, \
 so say in note that it covers the statement date shown.
+- Net worth, balances and investments come from the account views, never from v_expenses. "Net worth" or \
+"how much do I have" is SUM(value) over v_holdings, the newest value of each live account, and note must give \
+the date of the newest entry because the values are typed in by hand. Use v_snapshots for how an account or \
+the total changed over time, and copy the month-by-month net worth example for totals over time. "Gain" is \
+value minus invested, only for rows where invested IS NOT NULL. Money you put in each month from your own \
+entries is in v_entries (kind = 'transfer', category 'Investments'), which is a different thing from the value \
+of the accounts. Match an account with LOWER(account) LIKE '%text%'.
 - One statement. No comments. SQLite syntax only.
-- If the question cannot be answered from these views (balances, net worth, market value of investments, \
-purchases made on a particular card, \
+- If the question cannot be answered from these views (purchases made on a particular card, live market prices, \
 dates outside the data), set sql to an empty string and explain in note.
 - note: one short sentence saying what the query measures and the exact date range, so the person can spot \
 a misreading."""

@@ -9,6 +9,7 @@ const SUGGESTIONS = [
   "Spend per month over the last six months",
   "Which merchant did I spend the most at this year?",
   "Which card bills are unpaid?",
+  "What is my net worth and how is it split?",
 ];
 
 export default function Ask({ seed }: { seed: { text: string; n: number } }) {

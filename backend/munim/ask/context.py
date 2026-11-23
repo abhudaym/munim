@@ -7,7 +7,7 @@ import os
 import sqlite3
 from datetime import date, timedelta
 
-from munim.db.views import BILL_COLUMNS, CARD_COLUMNS, COLUMNS
+from munim.db.views import ACCOUNT_COLUMNS, BILL_COLUMNS, CARD_COLUMNS, COLUMNS, SNAPSHOT_COLUMNS
 
 MIN_MERCHANT_USES = 3
 MAX_MERCHANTS = 40
@@ -65,6 +65,7 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         "  v_expenses: money spent. Use this for any question about spending.",
         "  v_entries: every entry including income and transfers (SIPs, investments, EMIs).",
         "  v_cards, v_bills: credit cards and the bills typed in for them (see below).",
+        "  v_accounts, v_snapshots, v_holdings: accounts (bank, broker, funds, PF) and the values typed in for them.",
         "Columns of v_expenses and v_entries, identical in both:",
         *[f"  {name}: {desc}" for name, desc in COLUMNS],
         "",
@@ -92,6 +93,22 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         ]
     else:
         lines += ["No cards have been added yet."]
+    accounts = q("SELECT account, type, archived FROM v_accounts ORDER BY account")
+    lines += [
+        "",
+        "Accounts. v_accounts columns:", *[f"  {name}: {desc}" for name, desc in ACCOUNT_COLUMNS],
+        "v_snapshots columns (v_holdings has the same columns but only the newest row of each live account):",
+        *[f"  {name}: {desc}" for name, desc in SNAPSHOT_COLUMNS],
+    ]
+    if accounts:
+        n_snaps, s_first, s_last = q("SELECT count(*), min(as_of), max(as_of) FROM v_snapshots")[0]
+        lines += [
+            "Accounts as 'name (type, archived)': "
+            + ", ".join(f"{a} ({t}{', archived' if x else ''})" for a, t, x in accounts),
+            f"Values recorded: {n_snaps}" + (f", from {s_first} to {s_last}." if n_snaps else "."),
+        ]
+    else:
+        lines += ["No accounts have been added yet."]
     if subs:
         lines += ["", "Subcategories as 'name (entries)':", "  " + ", ".join(f"{s} ({c})" for s, c in subs)]
     if send_merchants:
@@ -101,17 +118,24 @@ def build_context(conn: sqlite3.Connection, today: date, send_merchants: bool | 
         )
         if merchants:
             lines += ["", "Frequent merchants as 'name (entries)':", "  " + ", ".join(f"{m} ({c})" for m, c in merchants)]
-    lines += ["", *_examples(date_tokens(today), [name for name, _ in subs], bool(odo_n), bool(cards))]
+    lines += ["", *_examples(date_tokens(today), [name for name, _ in subs], bool(odo_n), bool(cards), bool(accounts))]
     return "\n".join(lines)
 
 
+# Each live account counts its newest value on or before that month: a month with no new entry carries the old one.
+_NET_WORTH_HISTORY = (
+    "SELECT month, SUM(v) AS net_worth FROM (SELECT m.month AS month, "
+    "(SELECT s.value FROM v_snapshots s WHERE s.account = a.account AND s.month <= m.month "
+    "ORDER BY s.as_of DESC LIMIT 1) AS v FROM (SELECT DISTINCT month FROM v_snapshots) m, v_accounts a "
+    "WHERE a.archived = 0) GROUP BY month ORDER BY month"
+)
 _LATEST_BILLS = (
     "SELECT card, statement_date, amount, due_date, is_paid FROM v_bills b "
     "WHERE statement_date = (SELECT MAX(statement_date) FROM v_bills WHERE card = b.card) ORDER BY card"
 )
 
 
-def _examples(t: dict[str, str], tags: list[str], has_odometer: bool, has_cards: bool = False) -> list[str]:
+def _examples(t: dict[str, str], tags: list[str], has_odometer: bool, has_cards: bool = False, has_accounts: bool = False) -> list[str]:
     """Worked examples with today's real dates. Small models follow these far better than rules."""
     out = ["Examples (same style, same date literals):"]
 
@@ -169,4 +193,13 @@ def _examples(t: dict[str, str], tags: list[str], has_odometer: bool, has_cards:
             f"SELECT month, card, SUM(amount) AS billed FROM v_bills WHERE statement_date >= '{t['year_start']}' "
             "GROUP BY month, card ORDER BY month",
         )
+    if has_accounts:
+        add("What is my net worth?", "SELECT SUM(value) AS net_worth, MAX(as_of) AS latest_entry FROM v_holdings")
+        add("Net worth by account type", "SELECT type, SUM(value) AS total FROM v_holdings GROUP BY type ORDER BY total DESC")
+        add("What is my total gain on investments?", "SELECT SUM(gain) AS gain, SUM(invested) AS invested FROM v_holdings WHERE invested IS NOT NULL")
+        add(
+            "How has my Dhan account grown?",
+            "SELECT as_of, value FROM v_snapshots WHERE LOWER(account) LIKE '%dhan%' ORDER BY as_of",
+        )
+        add("Net worth month by month", _NET_WORTH_HISTORY)
     return out

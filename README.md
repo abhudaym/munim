@@ -85,8 +85,9 @@ a table whitelist, a 5 s limit and a 500-row cap. Every question and its query i
 
 **What leaves this machine** (hosted models only; with Ollama, nothing): your question, category and subcategory names, merchant names used
 at least 3 times (set `MUNIM_SEND_MERCHANTS=0` to withhold), your card names with their bill day, how
-many bills are recorded and their date range, and the date range of the question. Never amounts or
-individual transactions or bills.
+many bills are recorded and their date range, your account names and types with how many values are
+recorded and their date range, and the date range of the question. Never amounts or
+individual transactions, bills or account values.
 
 `munim eval` scores the model against ~20 golden questions with hand-written reference queries
 (real API calls; run it by hand after changing the model or prompt).
@@ -99,6 +100,15 @@ they are never added to your spending. Two more views, `v_cards` and `v_bills`, 
 them: the picture, colour and last four digits are not exposed, and the card tables themselves stay closed.
 Questions about individual purchases on a card cannot be answered, because Munim does not know which
 card an expense was paid with.
+
+### Asking about net worth
+
+Ask reads the Net worth page too. Try "what is my net worth?", "net worth by account type", "how has my
+Dhan account grown?", "what is my total gain?" or "net worth month by month". Three views, `v_accounts`,
+`v_snapshots` and `v_holdings`, are all the model sees. `v_holdings` is the newest value of every live
+account, so a total is always the latest numbers and leaves out archived accounts. Because the values are
+typed in, answers say which date the newest entry is from. Your Money Manager "Investments" transfers stay
+in `v_entries`, so "how much did I put in" and "what is it worth now" can be asked together.
 
 ## Dashboard
 

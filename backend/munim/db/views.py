@@ -4,6 +4,9 @@ v_expenses  money you actually spent (kind = 'expense', live rows only)
 v_entries   every live entry: expenses, income and transfers (SIPs, EMIs)
 v_cards     credit cards you track by hand (name, bill day, days to pay)
 v_bills     the statements you typed in for those cards
+v_accounts  bank, broker, fund and PF accounts you track by hand
+v_snapshots every value you typed in for those accounts, by date
+v_holdings  the latest value of each live account: net worth is the sum of this
 
 The card views are separate on purpose: card bills are typed totals, not purchases, and they
 are never part of v_expenses, so a bill can not be added to spend by mistake.
@@ -29,7 +32,7 @@ COLUMNS: list[tuple[str, str]] = [
     ("odometer_km", "the car's odometer reading typed on some car entries (fuel, service); cumulative; usually NULL"),
 ]
 
-VIEW_NAMES = ("v_expenses", "v_entries", "v_cards", "v_bills")
+VIEW_NAMES = ("v_expenses", "v_entries", "v_cards", "v_bills", "v_accounts", "v_snapshots", "v_holdings")
 
 # (v_bills looks the card name up with a subquery rather than a JOIN, and both card views carry a filter SQLite cannot optimise away (it would drop `id IS NOT NULL`).
 # Without that, SQLite reports the bare table under a plain count(*) outside the view, which the
@@ -40,6 +43,9 @@ VIEW_SOURCES: dict[str, set[str]] = {
     "v_entries": {"transactions"},
     "v_cards": {"cards"},
     "v_bills": {"cards", "bills"},
+    "v_accounts": {"accounts"},
+    "v_snapshots": {"accounts", "snapshots"},
+    "v_holdings": {"accounts", "snapshots"},
 }
 
 CARD_COLUMNS: list[tuple[str, str]] = [
@@ -47,6 +53,20 @@ CARD_COLUMNS: list[tuple[str, str]] = [
     ("statement_day", "day of the month the bill is generated, 1 to 31"),
     ("due_days", "days allowed to pay after the bill is generated; NULL when not set"),
     ("archived", "1 when the card is archived, else 0"),
+]
+ACCOUNT_COLUMNS: list[tuple[str, str]] = [
+    ("account", "account name, e.g. 'Dhan'"),
+    ("type", "'cash' | 'equity' | 'mutual_fund' | 'debt' | 'other'"),
+    ("archived", "1 when archived (left out of net worth), else 0"),
+]
+SNAPSHOT_COLUMNS: list[tuple[str, str]] = [
+    ("account", "account name"),
+    ("type", "the account's type"),
+    ("as_of", "date the value was typed in, 'YYYY-MM-DD'"),
+    ("month", "'YYYY-MM' of as_of"),
+    ("value", "what the account was worth that day, INR"),
+    ("invested", "amount put in so far, INR; NULL when not given"),
+    ("gain", "value minus invested; NULL when invested is NULL"),
 ]
 BILL_COLUMNS: list[tuple[str, str]] = [
     ("card", "card name, same as v_cards.card"),
@@ -75,6 +95,26 @@ SELECT name AS card, statement_day, due_days,
        CASE WHEN archived_at IS NULL THEN 0 ELSE 1 END AS archived
 FROM cards
 WHERE name > ''""",
+    "v_accounts": """CREATE VIEW v_accounts AS
+SELECT name AS account, type,
+       CASE WHEN archived_at IS NULL THEN 0 ELSE 1 END AS archived
+FROM accounts
+WHERE name > ''""",
+    "v_snapshots": """CREATE VIEW v_snapshots AS
+SELECT (SELECT name FROM accounts WHERE id = s.account_id) AS account,
+       (SELECT type FROM accounts WHERE id = s.account_id) AS type,
+       s.as_of, strftime('%Y-%m', s.as_of) AS month, s.value, s.invested,
+       CASE WHEN s.invested IS NULL THEN NULL ELSE s.value - s.invested END AS gain
+FROM snapshots s
+WHERE s.as_of > ''""",
+    "v_holdings": """CREATE VIEW v_holdings AS
+SELECT (SELECT name FROM accounts WHERE id = s.account_id) AS account,
+       (SELECT type FROM accounts WHERE id = s.account_id) AS type,
+       s.as_of, strftime('%Y-%m', s.as_of) AS month, s.value, s.invested,
+       CASE WHEN s.invested IS NULL THEN NULL ELSE s.value - s.invested END AS gain
+FROM snapshots s
+WHERE s.account_id IN (SELECT id FROM accounts WHERE archived_at IS NULL)
+  AND s.as_of = (SELECT MAX(as_of) FROM snapshots WHERE account_id = s.account_id)""",
     "v_bills": """CREATE VIEW v_bills AS
 SELECT (SELECT name FROM cards WHERE id = b.card_id) AS card,
        b.statement_date,

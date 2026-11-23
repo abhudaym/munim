@@ -1,3 +1,4 @@
+import Analyse from "./Analyse";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, AskHistoryItem, AskResult, AskStatus } from "../api";
 import Chart, { ChartPicker } from "../components/Chart";
@@ -24,6 +25,7 @@ export default function Ask({ seed }: { seed: { text: string; n: number } }) {
   const [title, setTitle] = useState("");
   const [rolling, setRolling] = useState(true);
   const [pinned, setPinned] = useState("");
+  const [mode, setMode] = useState<"query" | "analyse">("query");
 
   const loadHistory = useCallback(() => {
     api.askHistory().then(setHistory).catch(() => undefined);
@@ -59,6 +61,7 @@ export default function Ask({ seed }: { seed: { text: string; n: number } }) {
   useEffect(() => {
     if (seed.n > ran && seed.text) {
       setRan(seed.n);
+      setMode("query");
       void submit(seed.text);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,8 +86,15 @@ export default function Ask({ seed }: { seed: { text: string; n: number } }) {
     <>
       <header>
         <h1>Ask</h1>
-        <p className="muted">Plain-English questions about your spending.</p>
+        <p className="muted">
+          {mode === "query" ? "Plain-English questions, answered with a query and a chart." : "Written answers about your money, from a model on this machine."}
+        </p>
       </header>
+      <div className="tabs" role="group" aria-label="Mode">
+        <button type="button" aria-pressed={mode === "query"} onClick={() => setMode("query")}>Query</button>
+        <button type="button" aria-pressed={mode === "analyse"} onClick={() => setMode("analyse")}>Analyse</button>
+      </div>
+      {mode === "analyse" ? <Analyse /> : (<>
 
       {status && !status.ready && (
         <div className="banner" role="status">
@@ -192,6 +202,7 @@ export default function Ask({ seed }: { seed: { text: string; n: number } }) {
           the date range. Amounts and individual transactions never leave this machine.
         </p>
       )}
+      </>)}
     </>
   );
 }

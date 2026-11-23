@@ -265,3 +265,23 @@ export const cards = {
     request<Bill>(`/api/bills/${id}`, send("PATCH", body)),
   removeBill: (id: number) => gone(`/api/bills/${id}`),
 };
+
+export type AnalyseFact = { key: string; label: string; text: string };
+export type AnalyseQuery = { question: string; sql: string | null; columns: string[]; rows: unknown[][]; note: string | null; error: string | null };
+export type AnalyseResult = {
+  question: string;
+  answer: string;
+  facts: AnalyseFact[];
+  queries: AnalyseQuery[];
+  unmatched: string[];
+  flagged: boolean;
+  attempts: number;
+  model: string;
+  seconds: number;
+};
+export type AnalyseStatus = { ready: boolean; model: string | null; reachable: boolean; has_model: boolean; problem: string | null };
+export const analyseApi = {
+  status: () => request<AnalyseStatus>("/api/analyse/status"),
+  run: (body: { question: string; goal_amount?: number; goal_months?: number; goal_label?: string }) =>
+    request<AnalyseResult>("/api/analyse", send("POST", body)),
+};

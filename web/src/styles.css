@@ -309,3 +309,14 @@ img.face { padding: 0; display: block; background: var(--raised); }
 .swatch-btn[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 2px var(--bg); }
 .swatch-btn:focus-visible, .filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .filebtn { cursor: pointer; position: relative; }
+
+/* analyse */
+.answer { font-size: 14px; line-height: 1.65; max-width: 760px; }
+.answer p { margin: 0 0 10px; }
+.answer ul { margin: 0 0 10px; padding-left: 20px; }
+.answer li { margin-bottom: 6px; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.check input { width: 18px; height: 18px; }
+.facts { table-layout: fixed; width: 100%; min-width: 0; }
+.facts td { overflow-wrap: anywhere; }
+.facts td:first-child { width: 40%; }

@@ -110,6 +110,39 @@ account, so a total is always the latest numbers and leaves out archived account
 typed in, answers say which date the newest entry is from. Your Money Manager "Investments" transfers stay
 in `v_entries`, so "how much did I put in" and "what is it worth now" can be asked together.
 
+## Analyse
+
+The Ask page has a second mode, **Analyse**, for questions that need a written answer: "Is my spending
+too much for my income?", "Where is my money going?", or "How much should I save for a ₹3,00,000 trip in
+10 months?" (tick "Saving for something" and fill in the cost and months).
+
+How it works:
+
+1. **Fact pack.** Fixed queries compute the same numbers every time: average monthly income, spending,
+   investments and EMIs over the last six whole months, shares of income, the change against the six
+   months before, the top five categories, this month so far, net worth and unpaid card bills. With a
+   goal: the amount needed each month and how long it takes at your current rate.
+2. **Extra facts.** The model may ask for up to two more (say, spending on one category). Ask writes
+   those queries, and they go through the same guard and read-only runner as any other question.
+3. **Arithmetic in code.** Averages, percentages and months are worked out in Python. The model never
+   calculates.
+4. **Writing.** The model writes a short answer from the facts only.
+5. **Number check.** Every number in the answer must appear in the facts. If one does not, the model
+   gets one retry; if it still does not match, the answer is shown with a warning naming the number.
+
+The facts used, and any extra queries, are listed under each answer.
+
+**Local only.** Analyse has to see your amounts, so it only talks to a model on this machine. It uses
+Ollama and refuses any other server, whatever `.env` says.
+
+```bash
+ollama pull qwen2.5:14b     # about 9 GB; fine on 16 GB of memory
+```
+
+Settings (optional): `MUNIM_ANALYSE_MODEL` (default `qwen2.5:14b`) and `MUNIM_ANALYSE_BASE_URL`
+(default `http://localhost:11434/v1`, must be on this machine). Ask keeps its own model for writing SQL,
+and only names and counts go to it, as before. Expect 20 to 40 seconds per answer on an M1 Pro.
+
 ## Dashboard
 
 Any answer on the Ask page can be pinned as a tile; the Dashboard page can also ask and pin in one

@@ -8,6 +8,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from munim import __version__, config
+from munim.analyse import AnalyseConfigError, LocalChat
+from munim.api.analyse import router as analyse_router
 from munim.api.cards import router as cards_router
 from munim.api.networth import router as networth_router
 from munim.api.routes import router
@@ -17,7 +19,10 @@ from munim.db.session import make_session_factory
 
 
 def create_app(
-    data_dir: Path | None = None, llm: SQLWriter | None = None, load_llm_from_env: bool = True
+    data_dir: Path | None = None,
+    llm: SQLWriter | None = None,
+    load_llm_from_env: bool = True,
+    analyst: LocalChat | None = None,
 ) -> FastAPI:
     config.load_env()
     data = Path(data_dir) if data_dir else config.data_dir()
@@ -38,9 +43,19 @@ def create_app(
     if llm is None and load_llm_from_env:
         llm = writer_from_env()  # None when nothing is configured
     app.state.llm = llm
+    app.state.analyst_problem = None
+    if analyst is None and load_llm_from_env:
+        try:
+            analyst = LocalChat.from_env()
+        except AnalyseConfigError as exc:
+            app.state.analyst_problem = str(exc)
+    elif analyst is None:
+        app.state.analyst_problem = "Analyse is not set up."
+    app.state.analyst = analyst
     app.include_router(router)
     app.include_router(networth_router)
     app.include_router(cards_router)
+    app.include_router(analyse_router)
 
     @app.get("/api/health")
     def health():

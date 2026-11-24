@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { inr, monthLabel } from "../format";
+import { inr, monthLabel, num } from "../format";
+import { isHidden } from "../privacy";
 
 export type ChartKind = "number" | "bars" | "line" | "table";
 export type Cell = string | number | null;
@@ -17,7 +18,7 @@ const MONEY = /(amount|total|spent|spend|sum|avg|average|income|expense|max|min|
 const MONTH = /^\d{4}-\d{2}$/;
 
 export const isMoney = (column: string) => MONEY.test(column);
-export const fmtValue = (column: string, v: number) => (isMoney(column) ? inr(v) : v.toLocaleString("en-IN"));
+export const fmtValue = (column: string, v: number) => (isMoney(column) ? inr(v) : num(v));
 const fmtLabel = (v: Cell) => (v === null ? "none" : typeof v === "string" && MONTH.test(v) ? monthLabel(v) : String(v));
 
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -40,6 +41,7 @@ function niceScale(top: number) {
 
 /** Compact amounts for axis ticks: 12.5k, 1.2L (lakh), 3Cr. */
 function fmtTick(column: string, v: number) {
+  if (isHidden()) return isMoney(column) ? "₹***" : "***";
   const trim = (n: number) => String(Math.round(n * 10) / 10);
   const a = Math.abs(v);
   const body = a >= 1e7 ? `${trim(v / 1e7)}Cr` : a >= 1e5 ? `${trim(v / 1e5)}L` : a >= 1e3 ? `${trim(v / 1e3)}k` : String(v);

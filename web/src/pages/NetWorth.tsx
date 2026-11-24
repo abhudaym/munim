@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Account, AccountType, NetWorth as NW, Snapshot, worth } from "../api";
 import Chart from "../components/Chart";
-import { fmtDate, inr } from "../format";
+import { fmtDate, inr, num } from "../format";
+import { isHidden } from "../privacy";
 
 const TYPES: { id: AccountType; label: string }[] = [
   { id: "cash", label: "Cash / bank" },
@@ -17,7 +18,7 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 const day = (iso: string) => fmtDate(`${iso}T00:00:00`);
-const pct = (n: number) => `${n >= 0 ? "+" : ""}${(Math.round(n * 10) / 10).toFixed(1)}%`;
+const pct = (n: number) => isHidden() ? "****" : `${n >= 0 ? "+" : ""}${(Math.round(n * 10) / 10).toFixed(1)}%`;
 
 export default function NetWorth() {
   const [nw, setNw] = useState<NW | null>(null);
@@ -74,7 +75,7 @@ export default function NetWorth() {
         <div className="card">
           <div className="tile-label">Net worth</div>
           <div className="tile-value">{inr(nw.total)}</div>
-          <div className="tile-note">{live.filter((a) => a.value !== null).length} accounts with a value</div>
+          <div className="tile-note">{num(live.filter((a) => a.value !== null).length)} accounts with a value</div>
         </div>
         <div className="card">
           <div className="tile-label">Invested</div>
@@ -122,7 +123,7 @@ export default function NetWorth() {
               <div className="track" aria-hidden="true">
                 <div className="fill amber" style={{ width: `${t.share * 100}%` }} />
               </div>
-              <span className="mono right">{Math.round(t.share * 100)}%</span>
+              <span className="mono right">{isHidden() ? "****" : `${Math.round(t.share * 100)}%`}</span>
               <span className="mono right">{inr(t.total)}</span>
             </div>
           ))}

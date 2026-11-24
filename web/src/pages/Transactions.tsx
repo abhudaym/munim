@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, Summary, SummaryRow, TxnPage } from "../api";
 import DateRange from "../components/DateRange";
-import { fmtDate, fmtTime, inr, monthLabel, Preset, presetRange } from "../format";
+import { fmtDate, fmtTime, inr, monthLabel, num, Preset, presetRange } from "../format";
 
 const LIMIT = 50;
 const NONE = "(none)";
@@ -12,7 +12,7 @@ const GROUPS: { id: GroupBy; label: string }[] = [
   { id: "merchant", label: "Merchant" },
 ];
 
-const optionLabel = (r: SummaryRow, none: string) => `${r.key === NONE ? none : r.key} (${r.count})`;
+const optionLabel = (r: SummaryRow, none: string) => `${r.key === NONE ? none : r.key} (${num(r.count)})`;
 
 export default function Transactions() {
   const [preset, setPreset] = useState<Preset | "custom">("all");
@@ -181,7 +181,7 @@ export default function Transactions() {
               </div>
               <div className="card stat">
                 <div className="muted">Entries</div>
-                <div className="big">{page.total.toLocaleString("en-IN")}</div>
+                <div className="big">{num(page.total)}</div>
               </div>
               <div className="card stat">
                 <div className="muted">Average per entry</div>
@@ -209,7 +209,7 @@ export default function Transactions() {
                     <span className="track" aria-hidden="true">
                       <span className="fill" style={{ width: `${top ? Math.max(1, (r.total / top) * 100) : 0}%` }} />
                     </span>
-                    <span className="muted right">{r.count}</span>
+                    <span className="muted right">{num(r.count)}</span>
                     <span className="mono right">{inr(r.total)}</span>
                   </div>
                 ))}
@@ -261,7 +261,7 @@ export default function Transactions() {
         {page && page.total === 0 && <div className="empty">No entries match these filters.</div>}
         <div className="row" style={{ alignItems: "center" }}>
           <span className="muted">
-            {first}–{last} of {page?.total ?? 0}
+            {first}–{last} of {num(page?.total ?? 0)}
           </span>
           <span style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>

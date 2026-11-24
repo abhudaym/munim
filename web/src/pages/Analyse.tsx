@@ -1,3 +1,4 @@
+import { maskText } from "../privacy";
 import { FormEvent, useEffect, useState } from "react";
 import { analyseApi, AnalyseResult, AnalyseStatus } from "../api";
 
@@ -23,9 +24,9 @@ function Answer({ text }: { text: string }) {
     <div className="answer">
       {blocks.map((b, i) =>
         b.list ? (
-          <ul key={i}>{b.lines.map((l, j) => <li key={j}>{l}</li>)}</ul>
+          <ul key={i}>{b.lines.map((l, j) => <li key={j}>{maskText(l)}</li>)}</ul>
         ) : (
-          <p key={i}>{b.lines[0]}</p>
+          <p key={i}>{maskText(b.lines[0])}</p>
         ),
       )}
     </div>
@@ -136,7 +137,7 @@ export default function Analyse() {
           <h2>{result.question}</h2>
           {result.flagged && (
             <div className="banner error" role="status">
-              Check this answer: it mentions {result.unmatched.join(", ")}, which is not in the numbers below.
+              Check this answer: it mentions {maskText(result.unmatched.join(", "))}, which is not in the numbers below.
             </div>
           )}
           <Answer text={result.answer} />
@@ -147,7 +148,7 @@ export default function Analyse() {
                 {result.facts.map((f) => (
                   <tr key={f.key}>
                     <td className="muted">{f.label}</td>
-                    <td>{f.text}</td>
+                    <td>{maskText(f.text)}</td>
                   </tr>
                 ))}
               </tbody>

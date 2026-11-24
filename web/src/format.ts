@@ -1,8 +1,14 @@
+import { isHidden, STARS } from "./privacy";
+
 const inr0 = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 const inr2 = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2 });
 
 /** Whole rupees for totals; paise only when the amount has them. */
-export const inr = (n: number) => (Number.isInteger(n) ? inr0.format(n) : inr2.format(n));
+export const inr = (n: number) =>
+  isHidden() ? `₹${STARS}` : Number.isInteger(n) ? inr0.format(n) : inr2.format(n);
+
+/** A plain count or figure, hidden along with the amounts. */
+export const num = (n: number) => (isHidden() ? STARS : n.toLocaleString("en-IN"));
 
 const day = new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 const time = new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });

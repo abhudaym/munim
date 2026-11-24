@@ -8,6 +8,7 @@ import Import from "./pages/Import";
 import Ask from "./pages/Ask";
 import Dashboard from "./pages/Dashboard";
 import { fmtDate } from "./format";
+import { setHidden, useHidden } from "./privacy";
 
 const PAGES = [
   { id: "overview", label: "Overview" },
@@ -29,6 +30,7 @@ export default function App() {
   const [page, setPage] = useState<PageId>(fromHash);
   const [typed, setTyped] = useState("");
   const [seed, setSeed] = useState<{ text: string; n: number }>({ text: "", n: 0 });
+  const hidden = useHidden();
   const [last, setLast] = useState<ImportRecord | null>(null);
 
   useEffect(() => {
@@ -62,6 +64,20 @@ export default function App() {
           ))}
         </nav>
         <div className="status">{last ? `last import ${fmtDate(last.imported_at)}` : "nothing imported yet"}</div>
+        <button
+          type="button"
+          className="eye"
+          aria-pressed={hidden}
+          aria-label={hidden ? "Show numbers" : "Hide numbers"}
+          title={hidden ? "Show numbers" : "Hide numbers"}
+          onClick={() => setHidden(!hidden)}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+            <circle cx="12" cy="12" r="3" />
+            {hidden && <path d="M4 4l16 16" />}
+          </svg>
+        </button>
       </header>
       <form className="askbar" onSubmit={ask}>
         <label htmlFor="askbar">ask &gt;</label>

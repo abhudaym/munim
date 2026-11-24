@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Bill, Card, cards } from "../api";
 import Chart from "../components/Chart";
-import { fmtDate, inr } from "../format";
+import { fmtDate, inr, num as count } from "../format";
+import { isHidden } from "../privacy";
 
 const day = (iso: string) => fmtDate(`${iso}T00:00:00`);
 const iso = (d: Date) =>
@@ -39,7 +40,7 @@ function CardFace({ card: c }: { card: Card }) {
   return (
     <div className="face" style={{ background: faceColor(c) }} role="img" aria-label={`${c.name} card`}>
       <span className="face-chip" aria-hidden="true" />
-      <span className="face-num">•••• •••• •••• {c.last4 ?? "••••"}</span>
+      <span className="face-num">•••• •••• •••• {isHidden() ? "••••" : c.last4 ?? "••••"}</span>
       <span className="face-foot">
         <span className="face-name">{c.name}</span>
         <span>BILL {ordinal(c.statement_day).toUpperCase()}</span>
@@ -94,7 +95,7 @@ export default function Cards() {
         <div className="card">
           <div className="tile-label">Unpaid bills</div>
           <div className="tile-value" style={unpaid > 0 ? { color: "var(--accent)" } : undefined}>{inr(unpaid)}</div>
-          <div className="tile-note">{live.reduce((a, c) => a + c.unpaid_count, 0)} bills not marked paid</div>
+          <div className="tile-note">{count(live.reduce((a, c) => a + c.unpaid_count, 0))} bills not marked paid</div>
         </div>
         <div className="card">
           <div className="tile-label">Next due date</div>
@@ -109,7 +110,7 @@ export default function Cards() {
         <div className="card">
           <div className="tile-label">Cards</div>
           <div className="tile-value">{live.length}</div>
-          <div className="tile-note">{archived.length ? `${archived.length} archived` : "tracked by hand"}</div>
+          <div className="tile-note">{archived.length ? `${count(archived.length)} archived` : "tracked by hand"}</div>
         </div>
       </section>
 
@@ -201,7 +202,7 @@ function CardPanel({ card: c, today, act }: { card: Card; today: string; act: (f
         {c.unpaid_count > 1 && (
           <>
             <span className="muted">Unpaid</span>
-            <span className="mono">{inr(c.unpaid_total)} <span className="muted">across {c.unpaid_count} bills</span></span>
+            <span className="mono">{inr(c.unpaid_total)} <span className="muted">across {count(c.unpaid_count)} bills</span></span>
           </>
         )}
       </div>
@@ -224,7 +225,7 @@ function CardPanel({ card: c, today, act }: { card: Card; today: string; act: (f
       <div className="tile-tools">
         <button type="button" className="btn primary" onClick={() => toggle("add")} aria-expanded={mode === "add"}>Add bill</button>
         <button type="button" className="btn" onClick={() => toggle("bills")} aria-expanded={mode === "bills"}>
-          Bills ({c.bills_count})
+          Bills ({count(c.bills_count)})
         </button>
         <button type="button" className="btn" onClick={() => toggle("edit")} aria-expanded={mode === "edit"}>Edit</button>
         <button type="button" className="btn" onClick={() => act(() => cards.patch(c.id, { archived: true }))}>Archive</button>

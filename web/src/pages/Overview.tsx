@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, Summary, TxnPage } from "../api";
 import DateRange from "../components/DateRange";
-import { fmtDate, inr, monthBounds, monthInRange, monthLabel, Preset, presetRange, rangeLabel } from "../format";
+import { fmtDate, inr, num, monthBounds, monthInRange, monthLabel, Preset, presetRange, rangeLabel } from "../format";
 
 type Detail = { categories: Summary; income: Summary; transfers: Summary; tagged: Summary; recent: TxnPage };
 
@@ -87,7 +87,7 @@ export default function Overview() {
     ? Math.round((detail.income.total - detail.categories.total - detail.transfers.total) * 100) / 100
     : undefined;
   const entries = (x: { count: number } | null | undefined) =>
-    `${x?.count ?? 0} ${x?.count === 1 ? "entry" : "entries"}, not counted as spend`;
+    `${num(x?.count ?? 0)} ${x?.count === 1 ? "entry" : "entries"}, not counted as spend`;
 
   const recentMonths = months.rows.slice(-12);
   const maxMonth = Math.max(...recentMonths.map((m) => m.total), 1);
@@ -113,7 +113,7 @@ export default function Overview() {
       />
 
       <section className="tiles" aria-label="Totals for this period">
-        <Tile label="Spent" value={detail?.categories.total} note={`${detail?.categories.count ?? 0} entries`} />
+        <Tile label="Spent" value={detail?.categories.total} note={`${num(detail?.categories.count ?? 0)} entries`} />
         <Tile label="Income" value={detail?.income.total} note="salary, bonus, cashback" />
         <Tile label="Invested" value={investments?.total} note={entries(investments)} />
         <Tile label="EMIs" value={emis?.total} note={entries(emis)} />
@@ -178,7 +178,7 @@ export default function Overview() {
             {tagged.map((t) => (
               <div className="bar-row" key={t.key}>
                 <span>
-                  {t.key} <span className="muted">· {t.count}</span>
+                  {t.key} <span className="muted">· {num(t.count)}</span>
                 </span>
                 <div className="track" aria-hidden="true">
                   <div className="fill amber" style={{ width: `${(t.total / maxTag) * 100}%` }} />

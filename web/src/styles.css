@@ -320,3 +320,6 @@ img.face { padding: 0; display: block; background: var(--raised); }
 .facts { table-layout: fixed; width: 100%; min-width: 0; }
 .facts td { overflow-wrap: anywhere; }
 .facts td:first-child { width: 40%; }
+
+.eye { display: flex; align-items: center; padding: 0 16px; background: none; border: 0; border-left: 1px solid var(--line); color: var(--muted); cursor: pointer; }
+.eye:hover, .eye[aria-pressed="true"] { color: var(--accent); }

@@ -229,6 +229,10 @@ stay meaningful between imports.
   in your browser.
 - **Overview → Trends**: savings rate per month (income − spend − EMIs, over income; investments
   count as saved), category growth against income growth, and a weekday × time-of-day grid.
+- **Overview → Trends → Day by day**: a year of days like a contribution graph, one square per day, brighter
+  for more spend (ranked among your spending days, so one big day doesn't wash out the rest). Hover or use
+  the arrow keys to read a day. Also shows no-spend days, your longest no-spend run and your biggest day.
+  A day with no entry counts as no spend; SIPs and EMIs aren't spend.
 - **Transactions → Recurring**: the same merchant at about the same amount and a steady gap, at least
   3 times. Flags price changes and charges that seem to have stopped.
 - **Garage**: cost per km (all Garage spend, and petrol only) from odometer readings typed into fuel

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from munim.api.deps import get_session
 from munim.insights.data import as_of, load
+from munim.insights.daily import daily
 from munim.insights.garage import garage
 from munim.insights.month import month_insight
 from munim.insights.recurring import find_recurring, still_to_come
@@ -70,3 +71,10 @@ def get_garage(today: date | None = Query(None), session: Session = Depends(get_
     txns = load(session)
     day = as_of(txns, _today(today))
     return {"as_of": day, **asdict(garage(txns, day))}
+
+
+@router.get("/daily")
+def get_daily(today: date | None = Query(None), session: Session = Depends(get_session)):
+    txns = load(session)
+    day = as_of(txns, _today(today))
+    return {"as_of": day, **asdict(daily(txns, day))}

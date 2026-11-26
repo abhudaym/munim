@@ -3,6 +3,7 @@ import { insights, Trends } from "../api";
 import { monthLabel, num } from "../format";
 import { isHidden } from "../privacy";
 import { MultiLine } from "./Chart";
+import DayCalendar from "./DayCalendar";
 
 const pct = (v: number | null, sign = false) =>
   v === null ? "–" : isHidden() ? "****" : `${sign && v > 0 ? "+" : ""}${Math.round(v * 100)}%`;
@@ -32,6 +33,7 @@ export default function TrendsView() {
         The last {num(data.months.length)} full months, {monthLabel(data.months[0])} to {monthLabel(data.months[data.months.length - 1])}. These
         don't follow the date picker.
       </div>
+      <DayCalendar />
       <section className="grid">
         <div className="card">
           <h2>Savings rate</h2>

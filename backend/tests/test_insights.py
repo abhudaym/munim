@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 
+from munim.insights.daily import daily
 from munim.insights.data import Txn, as_of
 from munim.insights.garage import bucket, garage
 from munim.insights.month import month_insight
@@ -118,3 +119,32 @@ def test_garage_cost_per_km_from_interpolated_readings():
     assert g.odometer_km == 12000 and g.services[0].what == "service 2"
     assert g.services[0].odometer_km == round(11000 + 1000 * 14 / 31)
     assert bucket("toll annual pass") == "Parking & tolls" and bucket("dashcam") == "Other"
+
+
+def test_daily_counts_only_expenses_and_starts_at_the_first_entry():
+    txns = [
+        t("2026-09-01", 100, "Salary", "salary", "income"),  # the first entry of any kind
+        t("2026-09-03", 200),
+        t("2026-09-03", 50, merchant="chai"),
+        t("2026-09-04", 9000, "Investments", "sip", "transfer"),  # not spend
+        t("2026-09-07", 300),
+    ]
+    d = daily(txns, date(2026, 9, 8))
+    assert d.tracked_from == date(2026, 9, 1) and d.tracked_days == 8
+    assert [(x.day, x.total, x.count) for x in d.days] == [(date(2026, 9, 3), 250, 2), (date(2026, 9, 7), 300, 1)]
+    assert d.total == 550 and d.spend_days == 2 and d.no_spend_days == 6
+    assert (d.longest_no_spend.days, d.longest_no_spend.start, d.longest_no_spend.end) == (3, date(2026, 9, 4), date(2026, 9, 6))
+    assert (d.current_no_spend.days, d.current_no_spend.start) == (1, date(2026, 9, 8))
+    assert d.biggest.day == date(2026, 9, 7)
+
+
+def test_daily_window_is_a_year_and_a_spend_on_the_last_day_ends_the_run():
+    d = daily([t("2025-01-01", 100), t("2026-09-08", 100)], date(2026, 9, 8))
+    assert d.start == date(2025, 9, 9) and d.tracked_from == d.start
+    assert [x.day for x in d.days] == [date(2026, 9, 8)]
+    assert d.current_no_spend.days == 0 and d.tracked_days == 365
+
+
+def test_daily_with_no_entries():
+    d = daily([], date(2026, 9, 8))
+    assert d.tracked_from is None and d.days == [] and d.no_spend_days == 0 and d.biggest is None

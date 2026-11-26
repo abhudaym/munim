@@ -354,7 +354,24 @@ export type GarageData = {
   services: { day: string; what: string; amount: number; odometer_km: number | null }[];
   km_since_service: number | null;
 };
+export type DaySpend = { day: string; total: number; count: number };
+export type Streak = { days: number; start: string | null; end: string | null };
+export type Daily = {
+  as_of: string;
+  start: string;
+  end: string;
+  tracked_from: string | null;
+  days: DaySpend[];
+  total: number;
+  tracked_days: number;
+  spend_days: number;
+  no_spend_days: number;
+  longest_no_spend: Streak;
+  current_no_spend: Streak;
+  biggest: DaySpend | null;
+};
 export const insights = {
+  daily: () => request<Daily>("/api/insights/daily"),
   month: () => request<MonthInsight>("/api/insights/month"),
   recurring: () => request<RecurringList>("/api/insights/recurring"),
   trends: () => request<Trends>("/api/insights/trends"),

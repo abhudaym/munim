@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from munim import __version__, config
 from munim.analyse import AnalyseConfigError, LocalChat
+from munim.api.insights import router as insights_router
 from munim.api.analyse import router as analyse_router
 from munim.api.cards import router as cards_router
 from munim.api.networth import router as networth_router
@@ -56,6 +57,7 @@ def create_app(
     app.include_router(networth_router)
     app.include_router(cards_router)
     app.include_router(analyse_router)
+    app.include_router(insights_router)
 
     @app.get("/api/health")
     def health():

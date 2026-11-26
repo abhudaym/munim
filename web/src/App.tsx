@@ -3,6 +3,7 @@ import { api, ImportRecord } from "./api";
 import Overview from "./pages/Overview";
 import NetWorth from "./pages/NetWorth";
 import Cards from "./pages/Cards";
+import Garage from "./pages/Garage";
 import Transactions from "./pages/Transactions";
 import Import from "./pages/Import";
 import Ask from "./pages/Ask";
@@ -14,16 +15,16 @@ const PAGES = [
   { id: "overview", label: "Overview" },
   { id: "networth", label: "Net worth" },
   { id: "cards", label: "Cards" },
+  { id: "garage", label: "Garage" },
   { id: "dashboard", label: "Dashboard" },
   { id: "ask", label: "Ask" },
   { id: "transactions", label: "Transactions" },
-  { id: "import", label: "Import" },
 ] as const;
-type PageId = (typeof PAGES)[number]["id"];
+type PageId = (typeof PAGES)[number]["id"] | "import";
 
 const fromHash = (): PageId => {
-  const id = window.location.hash.slice(1);
-  return PAGES.some((p) => p.id === id) ? (id as PageId) : "overview";
+  const id = window.location.hash.slice(1).split("/")[0]; // "#transactions/recurring" opens Transactions
+  return id === "import" || PAGES.some((p) => p.id === id) ? (id as PageId) : "overview";
 };
 
 export default function App() {
@@ -64,6 +65,9 @@ export default function App() {
           ))}
         </nav>
         <div className="status">{last ? `last import ${fmtDate(last.imported_at)}` : "nothing imported yet"}</div>
+        <a className="import-link" href="#import" aria-current={page === "import" ? "page" : undefined}>
+          + Import
+        </a>
         <button
           type="button"
           className="eye"
@@ -94,6 +98,7 @@ export default function App() {
         {page === "overview" && <Overview />}
         {page === "networth" && <NetWorth />}
         {page === "cards" && <Cards />}
+        {page === "garage" && <Garage />}
         {page === "dashboard" && <Dashboard />}
         {page === "ask" && <Ask seed={seed} />}
         {page === "transactions" && <Transactions />}

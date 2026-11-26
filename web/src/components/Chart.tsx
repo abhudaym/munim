@@ -101,7 +101,7 @@ export function ResultTable({ columns, rows }: { columns: string[]; rows: Cell[]
 }
 
 /** Time series: columns or a line, with one readout that follows hover and keyboard focus. */
-function TimeChart({ points, column, line }: { points: { label: Cell; value: number }[]; column: string; line: boolean }) {
+export function TimeChart({ points, column, line }: { points: { label: Cell; value: number }[]; column: string; line: boolean }) {
   const [active, setActive] = useState(points.length - 1);
   const { max: top, ticks } = niceScale(Math.max(...points.map((p) => p.value), 1));
   const at = points[Math.min(active, points.length - 1)];
@@ -151,7 +151,7 @@ function TimeChart({ points, column, line }: { points: { label: Cell; value: num
 }
 
 /** Several lines over time, one colour per series in fixed order, one shared y-scale. */
-function MultiLine({ plot }: { plot: Plot }) {
+export function MultiLine({ plot }: { plot: Plot }) {
   const n = plot.labels.length;
   const [active, setActive] = useState(n - 1);
   const { max: top, ticks } = niceScale(Math.max(...plot.series.flatMap((s) => s.values), 1));

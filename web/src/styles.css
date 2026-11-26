@@ -321,5 +321,51 @@ img.face { padding: 0; display: block; background: var(--raised); }
 .facts td { overflow-wrap: anywhere; }
 .facts td:first-child { width: 40%; }
 
-.eye { display: flex; align-items: center; padding: 0 16px; background: none; border: 0; border-left: 1px solid var(--line); color: var(--muted); cursor: pointer; }
+.eye { min-height: 44px; display: flex; align-items: center; padding: 0 16px; background: none; border: 0; border-left: 1px solid var(--line); color: var(--muted); cursor: pointer; }
 .eye:hover, .eye[aria-pressed="true"] { color: var(--accent); }
+
+/* ---- insights ---- */
+.import-link { min-height: 44px; display: flex; align-items: center; padding: 0 16px; border-left: 1px solid var(--line); color: var(--text); text-decoration: none; text-transform: uppercase; }
+.import-link:hover, .import-link[aria-current="page"] { color: var(--accent); }
+.period { font-size: 13px; margin: 0; }
+.pace { display: grid; gap: 8px; }
+.pace-delta { font-size: 13px; margin-left: 8px; }
+.pace-bar { position: relative; height: 10px; background: var(--raised); margin: 6px 0 2px; }
+.pace-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.pace-usual { position: absolute; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--text); }
+.pace-proj { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--muted); }
+.pace-legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; color: var(--muted); }
+.pace-legend .key { display: inline-block; width: 2px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+.pace-legend .key.usual { background: var(--text); }
+.pace-legend .key.proj { border-left: 2px dashed var(--muted); }
+.committed { display: block; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--line); color: var(--text); text-decoration: none; }
+.committed:hover { border-color: var(--accent); }
+.mover { display: grid; grid-template-columns: minmax(100px, 160px) 100px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 40px; border-bottom: 1px solid #1c211e; }
+.mover > :last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flag { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid #1c211e; }
+.flag-mark { color: var(--accent); font-weight: 700; }
+.creep { display: grid; grid-template-columns: minmax(90px, 150px) minmax(0, 1fr) 64px; gap: 12px; align-items: center; min-height: 34px; border-bottom: 1px solid #1c211e; }
+.creep.ref { font-weight: 700; }
+.creep-track { position: relative; height: 10px; }
+.creep-mid { position: absolute; left: 50%; top: -4px; bottom: -4px; width: 1px; background: var(--line); }
+.creep-bar { position: absolute; top: 0; height: 10px; background: var(--bar); }
+.creep-bar.hot { background: var(--accent); }
+.creep-bar.inc { background: var(--text); }
+.heat { display: grid; grid-template-columns: 44px repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 8px; }
+.heat-head { font-size: 11px; }
+.heat-cell { height: 30px; }
+.heat-key { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.heat-key span { width: 16px; height: 10px; }
+.garage-top { display: grid; gap: 20px; grid-template-columns: minmax(260px, 1fr) minmax(0, 2.2fr); }
+.garage-tiles { align-content: stretch; }
+.car-slot { display: grid; gap: 8px; }
+.car-model { min-height: 150px; border: 1px dashed var(--line); display: grid; place-items: center; align-content: center; gap: 8px; }
+.split { display: flex; gap: 2px; height: 14px; margin-bottom: 12px; }
+.split-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) 48px 90px; gap: 10px; align-items: center; min-height: 30px; }
+.svc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid #1c211e; }
+.field { display: grid; gap: 4px; margin-bottom: 10px; }
+@media (max-width: 720px) {
+  .garage-top { grid-template-columns: 1fr; }
+  .mover { grid-template-columns: 1fr auto; }
+  .mover > :last-child { grid-column: 1 / -1; margin-top: -8px; padding-bottom: 8px; }
+}

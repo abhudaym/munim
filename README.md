@@ -216,3 +216,20 @@ The **Cards** page tracks each credit card's bills by hand. It is separate from 
 Reading the amounts from Gmail is a later step.
 
 Each card is drawn as a card. Under **Edit** you can pick its colour, add the last four digits, or use your own picture of the card (PNG, JPEG or WebP, up to 3 MB, kept in `data/cards/` on this machine). Munim does not download card images.
+
+## Insights
+
+Worked out in code from your entries, with no model involved. They are as of the last entry, so they
+stay meaningful between imports.
+
+- **Overview → This month**: spend so far against what you'd usually have spent by the same day
+  (last 6 months), where the month is heading, recurring charges still to come, the categories that
+  moved most and the merchants behind them, and up to three entries worth a look (same charge twice
+  within an hour, 3× your usual at a merchant, or a large first-time merchant). Dismissals are kept
+  in your browser.
+- **Overview → Trends**: savings rate per month (income − spend − EMIs, over income; investments
+  count as saved), category growth against income growth, and a weekday × time-of-day grid.
+- **Transactions → Recurring**: the same merchant at about the same amount and a steady gap, at least
+  3 times. Flags price changes and charges that seem to have stopped.
+- **Garage**: cost per km (all Garage spend, and petrol only) from odometer readings typed into fuel
+  entries, km per month, where the money goes, a service log, and a car-or-cab calculator.

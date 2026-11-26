@@ -285,3 +285,78 @@ export const analyseApi = {
   run: (body: { question: string; goal_amount?: number; goal_months?: number; goal_label?: string }) =>
     request<AnalyseResult>("/api/analyse", send("POST", body)),
 };
+
+// ---------------------------------------------------------------- insights
+export type Recurring = {
+  merchant: string;
+  category: string;
+  kind: "expense" | "transfer";
+  every: "weekly" | "monthly" | "quarterly" | "yearly";
+  usual: number;
+  count: number;
+  last: string;
+  next: string | null;
+  stopped: boolean;
+  previous_amount: number | null;
+};
+export type Mover = { category: string; now: number; usual: number; delta: number; merchants: string[] };
+export type Flag = { key: string; kind: "duplicate" | "big" | "new"; title: string; detail: string; day: string; amount: number };
+export type MonthInsight = {
+  month: string;
+  as_of: string;
+  day: number;
+  days_in_month: number;
+  spent: number;
+  usual_to_date: number | null;
+  projected: number | null;
+  usual_month: number | null;
+  history_months: number;
+  movers: Mover[];
+  flags: Flag[];
+  still_to_come: { total: number; items: Recurring[] };
+};
+export type RecurringList = {
+  as_of: string;
+  monthly_total: number;
+  still_to_come: number;
+  still_to_come_count: number;
+  changed: number;
+  items: Recurring[];
+};
+export type Growth = { category: string; recent: number; before: number; pct: number | null; faster_than_income: boolean };
+export type Trends = {
+  as_of: string;
+  months: string[];
+  savings: { month: string; income: number; spent: number; rate: number | null }[];
+  savings_avg: number | null;
+  growth: Growth[];
+  recent_months: number;
+  before_months: number;
+  slots: string[];
+  days: string[];
+  grid: number[][];
+  weekend_share: number | null;
+  top_slot: string | null;
+};
+export type GarageData = {
+  as_of: string;
+  category: string;
+  readings: number;
+  odometer_km: number | null;
+  odometer_on: string | null;
+  per_km: number | null;
+  petrol_per_km: number | null;
+  km_month: number | null;
+  km_avg: number | null;
+  spent_month: number;
+  months: { month: string; km: number | null; cost: number; petrol: number; per_km: number | null }[];
+  buckets: { name: string; monthly: number; share: number }[];
+  services: { day: string; what: string; amount: number; odometer_km: number | null }[];
+  km_since_service: number | null;
+};
+export const insights = {
+  month: () => request<MonthInsight>("/api/insights/month"),
+  recurring: () => request<RecurringList>("/api/insights/recurring"),
+  trends: () => request<Trends>("/api/insights/trends"),
+  garage: () => request<GarageData>("/api/insights/garage"),
+};

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, Summary, TxnPage } from "../api";
 import DateRange from "../components/DateRange";
+import ThisMonth from "../components/ThisMonth";
+import TrendsView from "../components/TrendsView";
 import { fmtDate, inr, num, monthBounds, monthInRange, monthLabel, Preset, presetRange, rangeLabel } from "../format";
 
 type Detail = { categories: Summary; income: Summary; transfers: Summary; tagged: Summary; recent: TxnPage };
@@ -13,6 +15,7 @@ export default function Overview() {
   const [ready, setReady] = useState(false);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"month" | "trends">("month");
 
   useEffect(() => {
     api
@@ -96,11 +99,38 @@ export default function Overview() {
   const tagged = (detail?.tagged.rows ?? []).filter((r) => r.key !== "(none)");
   const maxTag = Math.max(...tagged.map((t) => t.total), 1);
 
+  const toggle = (
+    <div className="tabs" role="group" aria-label="View">
+      <button type="button" aria-pressed={view === "month"} onClick={() => setView("month")}>
+        This month
+      </button>
+      <button type="button" aria-pressed={view === "trends"} onClick={() => setView("trends")}>
+        Trends
+      </button>
+    </div>
+  );
+  if (view === "trends")
+    return (
+      <>
+        <div className="row" style={{ alignItems: "center" }}>
+          <h1>Overview</h1>
+          {toggle}
+        </div>
+        <TrendsView />
+      </>
+    );
+
   return (
     <>
-      <div>
+      <div className="row" style={{ alignItems: "center" }}>
+        <h1>Overview</h1>
+        {toggle}
+      </div>
+      <ThisMonth />
+
+      <div style={{ marginTop: 12 }}>
         <div className="muted">Showing</div>
-        <h1>{rangeLabel(from, to)}</h1>
+        <h2 className="period">{rangeLabel(from, to)}</h2>
       </div>
 
       <DateRange

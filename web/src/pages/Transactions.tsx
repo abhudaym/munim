@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { api, Summary, SummaryRow, TxnPage } from "../api";
 import DateRange from "../components/DateRange";
+import RecurringPanel from "../components/RecurringPanel";
 import { fmtDate, fmtTime, inr, monthLabel, num, Preset, presetRange } from "../format";
 
 const LIMIT = 50;
 const NONE = "(none)";
-type GroupBy = "month" | "subcategory" | "merchant";
+type GroupBy = "month" | "subcategory" | "merchant" | "recurring";
 const GROUPS: { id: GroupBy; label: string }[] = [
   { id: "month", label: "Month" },
   { id: "subcategory", label: "Tag" },
   { id: "merchant", label: "Merchant" },
+  { id: "recurring", label: "Recurring" },
 ];
 
 const optionLabel = (r: SummaryRow, none: string) => `${r.key === NONE ? none : r.key} (${num(r.count)})`;
@@ -25,7 +27,7 @@ export default function Transactions() {
   const [q, setQ] = useState("");
   const [search, setSearch] = useState(""); // q, after a short pause
   const [offset, setOffset] = useState(0);
-  const [groupBy, setGroupBy] = useState<GroupBy>("month");
+  const [groupBy, setGroupBy] = useState<GroupBy>(() => (window.location.hash === "#transactions/recurring" ? "recurring" : "month"));
 
   const [categories, setCategories] = useState<SummaryRow[]>([]);
   const [tags, setTags] = useState<SummaryRow[]>([]);
@@ -68,7 +70,7 @@ export default function Transactions() {
     const filters = { from, to, kind, category, subcategory: tag, merchant, q: search };
     Promise.all([
       api.transactions({ ...filters, limit: LIMIT, offset }),
-      kind === "all" ? Promise.resolve(null) : api.summary({ ...filters, group_by: groupBy }),
+      kind === "all" || groupBy === "recurring" ? Promise.resolve(null) : api.summary({ ...filters, group_by: groupBy }),
     ])
       .then(([p, b]) => {
         if (!live) return;
@@ -200,6 +202,7 @@ export default function Transactions() {
                   ))}
                 </div>
               </div>
+              {groupBy === "recurring" && <RecurringPanel />}
               <div className="bars">
                 {rows.map((r) => (
                   <div className="bar-row" key={r.key}>
@@ -215,7 +218,7 @@ export default function Transactions() {
                 ))}
               </div>
               {hidden > 0 && <p className="muted">And {hidden} more. Narrow the filters to see them.</p>}
-              {breakdown && breakdown.rows.length === 0 && <div className="empty">Nothing to break down.</div>}
+              {groupBy !== "recurring" && breakdown && breakdown.rows.length === 0 && <div className="empty">Nothing to break down.</div>}
             </section>
           </>
         )
